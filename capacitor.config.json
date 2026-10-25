@@ -1,0 +1,9 @@
+{
+  "appId": "com.arjunsenani.readrx",
+  "appName": "ReadRx",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#EEF1EF"
+  }
+}

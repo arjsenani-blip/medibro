@@ -1,0 +1,87 @@
+import { useEffect, useMemo, useState } from 'react';
+import { readLabel } from '../lib/ocr';
+import { readFields, type LabelKind } from '../lib/extract';
+import { stitchTexts } from '../lib/stitch';
+import type { LabelFields } from '../lib/parseLabel';
+import { Button } from '../components/ui';
+
+interface Props {
+  files: File[];
+  kind: LabelKind;
+  prior: string; // text from earlier photos of the same label
+  onDone: (raw: string, fields: LabelFields) => void;
+  onBack: () => void; // to the photos, to retake or add some
+  onCancel: () => void;
+}
+
+/** Shows the photos while the label is read on the device. */
+export default function Scan({ files, kind, prior, onDone, onBack, onCancel }: Props) {
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [finding, setFinding] = useState(false);
+  const urls = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
+  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
+
+  useEffect(() => {
+    let alive = true;
+    setError(null);
+    setProgress(0);
+    setFinding(false);
+    (async () => {
+      const texts: string[] = [];
+      for (const [i, file] of files.entries()) {
+        const text = await readLabel(file, (p) => alive && setProgress((i + p) / files.length));
+        if (!alive) return;
+        if (text.replace(/\s/g, '').length >= 12) texts.push(text);
+        setProgress((i + 1) / files.length);
+      }
+      if (!texts.length) {
+        setError(`ReadRx couldn’t find any writing in ${files.length > 1 ? 'these photos' : 'this photo'}. Hold the ${kind} closer, in good light, with the label facing the camera.`);
+        return;
+      }
+      setFinding(true);
+      // a bottle's photos show parts of the same lines; a box's sides are separate
+      const raw = stitchTexts(prior ? [prior, ...texts] : texts, kind === 'bottle');
+      const fields = await readFields(raw, kind);
+      if (alive) onDone(raw, fields);
+    })().catch(() => alive && setError('The text reader didn’t load. Check your internet connection the first time you use ReadRx, then try again.'));
+    return () => {
+      alive = false;
+    };
+  }, [files]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="flex min-h-full flex-col">
+      <h1 className="mt-4 text-[1.6rem] font-extrabold">{error ? 'Try other photos' : 'Reading the label'}</h1>
+      <ul className={`mt-4 grid gap-2 ${urls.length > 1 ? 'grid-cols-3' : ''}`} aria-label="Your photos of the label">
+        {urls.map((u, i) => (
+          <li key={u}>
+            <img src={u} alt={`Photo ${i + 1}`} className={`w-full rounded-xl ring-1 ring-rule ${urls.length > 1 ? 'aspect-square object-cover' : 'max-h-[46vh] object-contain'}`} />
+          </li>
+        ))}
+      </ul>
+      {!error ? (
+        <div className="mt-5" role="status" aria-live="polite">
+          <div className="h-2.5 overflow-hidden rounded-full bg-rule">
+            <div className="progress-bar h-full bg-ink" style={{ width: `${finding ? 100 : Math.max(6, progress * 100)}%` }} />
+          </div>
+          <p className="mt-2 text-[0.95rem] text-muted">
+            {finding
+              ? 'Finding the medicine, strength and directions…'
+              : `Reading the text on this phone${files.length > 1 ? `, photo ${Math.min(files.length, Math.floor(progress * files.length) + 1)} of ${files.length}` : ''}… ${Math.round(progress * 100)}%`}
+          </p>
+        </div>
+      ) : (
+        <>
+          <p role="alert" className="mt-4 text-[1.05rem]">{error}</p>
+          <div className="mt-5 space-y-2">
+            <Button onClick={onBack}>Retake photos</Button>
+            <Button variant="quiet" onClick={onCancel}>
+              Cancel
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

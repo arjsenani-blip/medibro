@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* ReadRx tokens — one accent (prescription-bottle amber), everything else ink on cool neutrals. */
+@theme {
+  --font-sans: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --color-ground: #eef1ef;
+  --color-paper: #ffffff;
+  --color-ink: #1b2226;
+  --color-muted: #4e5a60;
+  --color-rule: #d3dad8;
+  --color-amber: #9a4a08;
+  --color-amber-wash: #f6ebe0;
+  --color-ok: #13683f;
+  --color-ok-wash: #e4f1e9;
+  --color-stop: #b3261e;
+  --color-stop-wash: #fbe9e7;
+}
+
+html {
+  font-size: 18px; /* larger default: many users are older or have low vision */
+  -webkit-text-size-adjust: 100%;
+}
+html[data-size="large"] { font-size: 21px; }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible { outline: 3px solid var(--color-amber); outline-offset: 2px; }
+
+/* Bottom action bar clears the iPhone home indicator */
+.safe-bottom { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+.safe-top { padding-top: max(10px, env(safe-area-inset-top)); }
+
+/* The line being read aloud */
+.speaking { background: var(--color-amber-wash); box-shadow: -10px 0 0 var(--color-amber-wash), 10px 0 0 var(--color-amber-wash); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .progress-bar { transition: width 200ms linear; }
+}
