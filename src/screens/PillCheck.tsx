@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Camera, Check, CircleHelp, LoaderCircle, Phone, X } from 'lucide-react';
+import { Camera, Check, CircleHelp, LoaderCircle, OctagonX, X } from 'lucide-react';
 import type { Medicine } from '../lib/store';
 import { appearanceFromDescription, compareColor, compareShape, type Appearance, type ColorName, type Match } from '../lib/appearance';
 import { lookupAppearance, type FdaResult } from '../lib/fda';
 import { analyzePhoto, type PillError, type PillReading } from '../lib/pillImage';
 import { plainLabel } from '../lib/plain';
-import { PhotoButton } from '../components/ui';
+import { CallButton, Card, PageTitle, PhotoButton } from '../components/ui';
 
 const SWATCH: Record<ColorName, string> = {
   white: '#f7f7f5', yellow: '#f2d35c', orange: '#ee9440', pink: '#f0a5b9', red: '#c8352e', purple: '#8b5fbf',
@@ -27,9 +27,24 @@ function Swatch({ color }: { color: ColorName }) {
 }
 
 function Mark({ m }: { m: Match }) {
-  if (m === 'match') return <Check className="size-6 text-ok" aria-label="Matches" />;
-  if (m === 'mismatch') return <X className="size-6 text-stop" aria-label="Doesn’t match" />;
-  return <CircleHelp className="size-6 text-muted" aria-label="Close" />;
+  // an icon and a word, so the result never depends on color
+  if (m === 'match')
+    return (
+      <span className="flex shrink-0 items-center gap-1 rounded-full bg-ok-wash px-2.5 py-1 text-[0.95rem] font-bold text-ok shadow-[inset_0_0_0_1px_currentColor]">
+        <Check className="size-5" aria-hidden /> Matches
+      </span>
+    );
+  if (m === 'mismatch')
+    return (
+      <span className="flex shrink-0 items-center gap-1 rounded-full bg-stop-wash px-2.5 py-1 text-[0.95rem] font-bold text-stop shadow-[inset_0_0_0_1px_currentColor]">
+        <X className="size-5" aria-hidden /> Doesn’t match
+      </span>
+    );
+  return (
+    <span className="flex shrink-0 items-center gap-1 rounded-full bg-surface px-2.5 py-1 text-[0.95rem] font-bold text-muted shadow-[inset_0_0_0_1px_currentColor]">
+      <CircleHelp className="size-5" aria-hidden /> Close
+    </span>
+  );
 }
 
 export default function PillCheck({ med }: { med: Medicine }) {
@@ -92,30 +107,29 @@ export default function PillCheck({ med }: { med: Medicine }) {
   }
 
   const call = f.pharmacyPhone ? (
-    <a href={`tel:${f.pharmacyPhone.replace(/[^\d]/g, '')}`} className="mt-3 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-ink px-5 text-[1.05rem] font-bold text-white">
-      <Phone className="size-5" aria-hidden /> Call your pharmacy
-    </a>
+    <CallButton phone={f.pharmacyPhone} className="mt-3">
+      Call your pharmacy
+    </CallButton>
   ) : null;
 
   return (
     <div className="flex min-h-full flex-col pb-8">
-      <h1 className="mt-4 text-[1.6rem] leading-tight font-extrabold">Check a pill</h1>
-      <p className="mt-1 text-[1.05rem] text-muted">{name}</p>
+      <PageTitle sub={name}>Check a pill</PageTitle>
 
       {/* 1. What it should look like */}
-      <section className="mt-4 rounded-2xl bg-paper p-4 ring-1 ring-rule" aria-labelledby="should">
-        <h2 id="should" className="text-[1.05rem] font-extrabold">
+      <Card i={1} className="mt-4 p-4" aria-labelledby="should">
+        <h2 id="should" className="headline text-[1.2rem]">
           It should look like
         </h2>
         {fda.status === 'loading' && (
-          <p className="mt-2 flex items-center gap-2 text-[0.95rem] text-muted">
-            <LoaderCircle className="size-4 animate-spin" aria-hidden /> Looking it up in the FDA drug database…
+          <p className="mt-2 flex items-center gap-2 text-[1rem] text-muted">
+            <LoaderCircle className="size-5 animate-spin" aria-hidden /> Looking it up in the FDA drug database…
           </p>
         )}
         {expected.length > 0 && (
           <>
-            {expected.length > 1 && <p className="mt-1 text-[0.95rem] text-muted">This medicine looks different depending on who made it. Yours should match one of these.</p>}
-            <ul className="mt-2 divide-y divide-rule">
+            {expected.length > 1 && <p className="mt-1 text-[1rem] text-muted">This medicine looks different depending on who made it. Yours should match one of these.</p>}
+            <ul className="mt-2 divide-y divide-divider">
               {expected.map((a, i) => (
                 <li key={i} className="py-2.5">
                   <p className="flex flex-wrap items-center gap-x-2 text-[1.15rem] font-bold">
@@ -126,16 +140,16 @@ export default function PillCheck({ med }: { med: Medicine }) {
                   </p>
                   {a.imprint && (
                     <p className="mt-1 text-[1rem]">
-                      Stamped <span className="rounded bg-ground px-1.5 py-0.5 text-[1.15rem] font-extrabold tracking-wider">{a.imprint}</span>
+                      Stamped <span className="rounded-lg bg-surface px-2 py-0.5 shadow-[inset_0_0_0_1px_var(--color-rule)] text-[1.15rem] font-extrabold tracking-wider">{a.imprint}</span>
                     </p>
                   )}
                 </li>
               ))}
             </ul>
-            <p className="mt-1 text-[0.85rem] text-muted">
+            <p className="mt-1 text-[0.9rem] text-muted">
               From {source}.{' '}
               {fda.result?.url && (
-                <a href={fda.result.url} target="_blank" rel="noreferrer" className="underline">
+                <a href={fda.result.url} target="_blank" rel="noreferrer" className="font-bold text-accent-deep underline underline-offset-2">
                   See the full label
                 </a>
               )}
@@ -143,34 +157,34 @@ export default function PillCheck({ med }: { med: Medicine }) {
           </>
         )}
         {(fda.status === 'error' || (fda.status === 'done' && !fda.result)) && !fromLabel && (
-          <p className="mt-2 text-[0.95rem]">
+          <p className="mt-2 text-[1rem]">
             {fda.message ?? `ReadRx couldn’t find what ${name} should look like.`} Ask your pharmacist to describe the pill, or add the description from your label on the review screen.
           </p>
         )}
-      </section>
+      </Card>
 
       {/* 2. Photo of the pill */}
-      <section className="mt-5" aria-labelledby="photo">
-        <h2 id="photo" className="text-[1.05rem] font-extrabold">
+      <Card i={2} className="mt-4 p-4" aria-labelledby="photo">
+        <h2 id="photo" className="headline text-[1.2rem]">
           Take a photo of one pill
         </h2>
-        <p className="mt-1 text-[0.95rem] text-muted">Put it on a plain, dark surface. Hold the phone straight above it, in daylight if you can.</p>
-        {photo && <img src={photo} alt="Your photo of the pill" className="mt-3 h-44 w-full rounded-2xl bg-ink object-contain" />}
+        <p className="mt-1 text-[1rem] text-muted">Put it on a plain, dark surface. Hold the phone straight above it, in daylight if you can.</p>
+        {photo && <img src={photo} alt="Your photo of the pill" className="mt-3 h-44 w-full rounded-[14px] bg-ink-strong object-contain" />}
         <div className="mt-3">
-          <PhotoButton capture variant={reading ? 'quiet' : 'primary'} onFile={onPhoto} icon={busy ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : <Camera className="size-5" aria-hidden />}>
+          <PhotoButton capture variant={reading ? 'glass' : 'primary'} onFile={onPhoto} icon={busy ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : <Camera className="size-5" aria-hidden />}>
             {reading ? 'Take another photo' : 'Take photo of pill'}
           </PhotoButton>
         </div>
         {typeof reading === 'string' && (
-          <p role="alert" className="mt-3 text-[1rem]">
+          <p role="alert" className="mt-3 rounded-[14px] bg-amber-wash p-3 text-[1rem] font-bold text-amber shadow-[inset_0_0_0_1px_currentColor]">
             {READ_ERROR[reading]}
           </p>
         )}
-      </section>
+      </Card>
 
       {/* 3. Comparison */}
       {reading && typeof reading === 'object' && (
-        <section className="mt-5 rounded-2xl bg-paper ring-1 ring-rule" aria-labelledby="compare" aria-live="polite">
+        <Card i={3} className="mt-4" aria-labelledby="compare" aria-live="polite">
           <h2 id="compare" className="sr-only">
             Comparison
           </h2>
@@ -181,7 +195,7 @@ export default function PillCheck({ med }: { med: Medicine }) {
             </p>
             {best && <Mark m={best.color} />}
           </div>
-          <div className="flex items-center gap-3 border-t border-rule px-4 py-3">
+          <div className="flex items-center gap-3 border-t border-divider px-4 py-3">
             <span className="grid size-8 shrink-0 place-items-center" aria-hidden>
               <span className="block bg-muted" style={{ width: 28, height: Math.max(10, 28 / reading.aspect), borderRadius: 99 }} />
             </span>
@@ -191,9 +205,9 @@ export default function PillCheck({ med }: { med: Medicine }) {
             {best && <Mark m={best.shape} />}
           </div>
           {best && imprints.length > 0 && best.color !== 'mismatch' && best.shape !== 'mismatch' && (
-            <div className="border-t border-rule px-4 py-3">
-              <p className="text-[1.05rem] font-bold">Look closely at the pill. What is stamped on it?</p>
-              <p className="text-[0.9rem] text-muted">Check both sides. A camera can’t read stamps reliably, so this step is yours.</p>
+            <div className="border-t border-divider px-4 py-3">
+              <p className="text-[1.05rem] font-bold text-ink-strong">Look closely at the pill. What is stamped on it?</p>
+              <p className="text-[0.95rem] text-muted">Check both sides. A camera can’t read stamps reliably, so this step is yours.</p>
               <div className="mt-2.5 grid gap-2">
                 {imprints.map((im) => (
                   <button
@@ -204,53 +218,62 @@ export default function PillCheck({ med }: { med: Medicine }) {
                       setImprint('yes');
                       setChosen(im);
                     }}
-                    className={`min-h-12 rounded-xl px-4 text-left text-[1.05rem] font-bold ring-1 ${imprint === 'yes' && chosen === im ? 'bg-ok-wash ring-ok' : 'ring-rule'}`}
+                    className={`btn min-h-14 justify-start px-4 text-left ${imprint === 'yes' && chosen === im ? 'choice-ok' : 'btn-quiet'}`}
                   >
+                    {imprint === 'yes' && chosen === im && <Check className="size-5 shrink-0" aria-hidden />}
                     It says {im}
                   </button>
                 ))}
-                <button type="button" aria-pressed={imprint === 'no'} onClick={() => setImprint('no')} className={`min-h-12 rounded-xl px-4 text-left text-[1.05rem] font-bold ring-1 ${imprint === 'no' ? 'bg-stop-wash ring-stop' : 'ring-rule'}`}>
+                <button type="button" aria-pressed={imprint === 'no'} onClick={() => setImprint('no')} className={`btn min-h-14 justify-start px-4 text-left ${imprint === 'no' ? 'choice-stop' : 'btn-quiet'}`}>
+                  {imprint === 'no' && <Check className="size-5 shrink-0" aria-hidden />}
                   It says something else
                 </button>
-                <button type="button" aria-pressed={imprint === 'unsure'} onClick={() => setImprint('unsure')} className={`min-h-12 rounded-xl px-4 text-left text-[1.05rem] font-bold ring-1 ${imprint === 'unsure' ? 'bg-ground ring-ink' : 'ring-rule'}`}>
+                <button type="button" aria-pressed={imprint === 'unsure'} onClick={() => setImprint('unsure')} className={`btn min-h-14 justify-start px-4 text-left ${imprint === 'unsure' ? 'choice-neutral' : 'btn-quiet'}`}>
+                  {imprint === 'unsure' && <Check className="size-5 shrink-0" aria-hidden />}
                   I can’t read it
                 </button>
               </div>
             </div>
           )}
-        </section>
+        </Card>
       )}
 
       {/* 4. Verdict */}
       {verdict === 'stop' && (
-        <section role="alert" className="mt-4 rounded-2xl bg-stop-wash p-4 ring-1 ring-stop/40">
-          <p className="text-[1.3rem] leading-tight font-extrabold text-stop">Don’t take this pill yet.</p>
+        <section role="alert" className="verdict verdict-stop sheet-in mt-4 p-4">
+          <p className="headline flex items-center gap-2 text-[1.35rem] !text-stop">
+            <OctagonX className="size-7 shrink-0" aria-hidden /> Don’t take this pill yet.
+          </p>
           <p className="mt-1 text-[1.05rem]">It doesn’t match what {name} should look like. It may be a different medicine or a different maker. Check with your pharmacist before taking it.</p>
           {call}
         </section>
       )}
       {verdict === 'ok' && (
-        <section role="status" className="mt-4 rounded-2xl bg-ok-wash p-4 ring-1 ring-ok/40">
-          <p className="text-[1.3rem] leading-tight font-extrabold text-ok">This pill matches {name}.</p>
+        <section role="status" className="verdict verdict-ok sheet-in mt-4 p-4">
+          <p className="headline flex items-center gap-2 text-[1.35rem] !text-ok">
+            <Check className="size-7 shrink-0" aria-hidden /> This pill matches {name}.
+          </p>
           <p className="mt-1 text-[1rem]">Color, shape and stamp all match the description. If anything still seems different from last time, ask your pharmacist.</p>
         </section>
       )}
       {verdict === 'partial' && (
-        <section role="status" className="mt-4 rounded-2xl bg-paper p-4 ring-1 ring-rule">
-          <p className="text-[1.2rem] font-extrabold">Color and shape look right.</p>
+        <section role="status" className="card sheet-in mt-4 p-4">
+          <p className="headline text-[1.25rem]">Color and shape look right.</p>
           <p className="mt-1 text-[1rem]">ReadRx doesn’t know what should be stamped on this pill, so it can’t fully confirm it. Ask your pharmacist if you’re not sure.</p>
           {call}
         </section>
       )}
       {verdict === 'unsure' && (
-        <section role="status" className="mt-4 rounded-2xl bg-paper p-4 ring-1 ring-rule">
-          <p className="text-[1.2rem] font-extrabold">ReadRx can’t confirm this pill.</p>
+        <section role="status" className="card sheet-in mt-4 p-4">
+          <p className="headline flex items-center gap-2 text-[1.25rem]">
+            <CircleHelp className="size-6 shrink-0" aria-hidden /> ReadRx can’t confirm this pill.
+          </p>
           <p className="mt-1 text-[1rem]">The stamp is how pharmacists tell look-alike pills apart. Try a magnifier or brighter light, or ask your pharmacist.</p>
           {call}
         </section>
       )}
 
-      <p className="mt-6 text-[0.85rem] text-muted">ReadRx is a reading aid, not a pharmacist. It can be wrong. When in doubt, don’t take the pill and call your pharmacy.</p>
+      <p className="mt-6 text-[0.95rem] text-ink-strong">ReadRx is a reading aid, not a pharmacist. It can be wrong. When in doubt, don’t take the pill and call your pharmacy.</p>
     </div>
   );
 }

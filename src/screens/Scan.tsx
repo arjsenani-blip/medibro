@@ -3,7 +3,7 @@ import { readLabel } from '../lib/ocr';
 import { readFields, type LabelKind } from '../lib/extract';
 import { stitchTexts } from '../lib/stitch';
 import type { LabelFields } from '../lib/parseLabel';
-import { Button } from '../components/ui';
+import { Button, Card, PageTitle } from '../components/ui';
 
 interface Props {
   files: File[];
@@ -51,30 +51,35 @@ export default function Scan({ files, kind, prior, onDone, onBack, onCancel }: P
   }, [files]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex min-h-full flex-col">
-      <h1 className="mt-4 text-[1.6rem] font-extrabold">{error ? 'Try other photos' : 'Reading the label'}</h1>
+    <div className="flex min-h-full flex-1 flex-col">
+      <PageTitle>{error ? 'Try other photos' : 'Reading the label'}</PageTitle>
       <ul className={`mt-4 grid gap-2 ${urls.length > 1 ? 'grid-cols-3' : ''}`} aria-label="Your photos of the label">
         {urls.map((u, i) => (
           <li key={u}>
-            <img src={u} alt={`Photo ${i + 1}`} className={`w-full rounded-xl ring-1 ring-rule ${urls.length > 1 ? 'aspect-square object-cover' : 'max-h-[46vh] object-contain'}`} />
+            <img src={u} alt={`Photo ${i + 1}`} className={`w-full rounded-[14px] shadow-[var(--shadow-md)] ${urls.length > 1 ? 'aspect-square object-cover' : 'max-h-[46vh] object-contain'}`} />
           </li>
         ))}
       </ul>
       {!error ? (
-        <div className="mt-5" role="status" aria-live="polite">
-          <div className="h-2.5 overflow-hidden rounded-full bg-rule">
-            <div className="progress-bar h-full bg-ink" style={{ width: `${finding ? 100 : Math.max(6, progress * 100)}%` }} />
+        <Card as="div" i={1} className="mt-5 p-4" role="status" aria-live="polite">
+          <div className="h-3 overflow-hidden rounded-full bg-surface shadow-[inset_0_0_0_1px_var(--hairline)]">
+            <div className="progress-bar h-full rounded-full bg-accent shadow-[0_0_12px_rgba(var(--accent-rgb),.8)]" style={{ width: `${finding ? 100 : Math.max(6, progress * 100)}%` }} />
           </div>
-          <p className="mt-2 text-[0.95rem] text-muted">
+          <p className="mt-3 flex items-center gap-2.5 text-[1rem] text-ink">
+            <span className="pulse size-2.5 shrink-0 rounded-full bg-accent shadow-[0_0_8px_rgba(var(--accent-rgb),.9)]" aria-hidden />
             {finding
               ? 'Finding the medicine, strength and directions…'
               : `Reading the text on this phone${files.length > 1 ? `, photo ${Math.min(files.length, Math.floor(progress * files.length) + 1)} of ${files.length}` : ''}… ${Math.round(progress * 100)}%`}
           </p>
-        </div>
+        </Card>
       ) : (
         <>
-          <p role="alert" className="mt-4 text-[1.05rem]">{error}</p>
-          <div className="mt-5 space-y-2">
+          <Card as="div" i={1} className="mt-4 p-4">
+            <p role="alert" className="text-[1.05rem] text-ink-strong">
+              {error}
+            </p>
+          </Card>
+          <div className="mt-5 space-y-2.5">
             <Button onClick={onBack}>Retake photos</Button>
             <Button variant="quiet" onClick={onCancel}>
               Cancel

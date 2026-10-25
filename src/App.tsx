@@ -2,13 +2,18 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Languages } from 'lucide-react';
 import { parseLabel, SAMPLE_LABEL, type LabelFields } from './lib/parseLabel';
 import { LANGUAGES } from './lib/sig';
-import { loadMedicines, loadPrefs, saveMedicines, savePrefs, type Medicine, type Prefs } from './lib/store';
+import { loadMedicines, loadPrefs, loadProfile, saveMedicines, savePrefs, saveProfile, type Medicine, type Prefs, type Profile } from './lib/store';
+import { applyAccent } from './lib/theme';
 import { plainLabel, spokenLines } from './lib/plain';
 import { speakLines, stopSpeaking } from './lib/speech';
 import { modelAvailable } from './lib/nativeReader';
 import { supplyFromLabel } from './lib/refill';
 import { onReminderTap, remindersSupported, syncReminders, type ReminderState } from './lib/reminders';
 import LanguageSheet from './components/LanguageSheet';
+import { Logo } from './components/ui';
+import Welcome from './screens/Welcome';
+import Setup from './screens/Setup';
+import ProfileScreen from './screens/ProfileScreen';
 import Home from './screens/Home';
 import Scan from './screens/Scan';
 import Capture from './screens/Capture';
@@ -18,6 +23,9 @@ import MedicineView from './screens/MedicineView';
 import PillCheck from './screens/PillCheck';
 
 type Screen =
+  | { name: 'welcome' }
+  | { name: 'setup' }
+  | { name: 'profile' }
   | { name: 'home' }
   | { name: 'capture'; kind: LabelKind; files: File[] }
   | { name: 'scan'; files: File[]; kind: LabelKind; prior: string; back: Screen } // `prior` = text from earlier photos of the same label
@@ -26,7 +34,8 @@ type Screen =
   | { name: 'pill'; id: string };
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>({ name: 'home' });
+  const [profile, setProfile] = useState<Profile>(loadProfile);
+  const [screen, setScreen] = useState<Screen>(() => (profile.setupDone ? { name: 'home' } : { name: 'welcome' }));
   const [meds, setMeds] = useState<Medicine[]>(loadMedicines);
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   const [langOpen, setLangOpen] = useState(false);
@@ -43,7 +52,11 @@ export default function App() {
     savePrefs(prefs);
     document.documentElement.dataset.size = prefs.large ? 'large' : 'normal';
     document.documentElement.lang = prefs.lang;
+    applyAccent(prefs.accent);
   }, [prefs]);
+  useEffect(() => saveProfile(profile), [profile]);
+  const editProfile = (patch: Partial<Profile>) => setProfile((p) => ({ ...p, ...patch }));
+  const editPrefs = (patch: Partial<Prefs>) => setPrefs((p) => ({ ...p, ...patch }));
   useEffect(() => {
     stopSpeaking();
     window.scrollTo(0, 0);
@@ -67,36 +80,74 @@ export default function App() {
   const lang = prefs.lang;
   const langName = LANGUAGES.find((l) => l.code === lang)!.name;
 
+  const ambient = <div className={`ambient ${screen.name === 'welcome' ? 'hero' : ''}`} aria-hidden />;
+  const sheet = langOpen && <LanguageSheet value={lang} onPick={(l) => editPrefs({ lang: l })} onClose={() => setLangOpen(false)} />;
+
+  if (screen.name === 'welcome') {
+    return (
+      <>
+        {ambient}
+        <Welcome onStart={() => go({ name: 'setup' })} />
+      </>
+    );
+  }
+
+  const brand = screen.name === 'home' || screen.name === 'setup';
   return (
     <div className="mx-auto flex min-h-dvh max-w-[30rem] flex-col px-4">
-      <header className="safe-top sticky top-0 z-20 -mx-4 flex items-center gap-2 bg-ground px-4 pb-2">
-        {screen.name === 'home' ? (
-          <span className="flex-1 text-[1.25rem] font-extrabold tracking-[-0.01em]">ReadRx</span>
+      {ambient}
+      <header className="bar safe-top sticky top-0 z-20 -mx-4 flex items-center gap-2 px-4 pb-2 shadow-[0_1px_0_var(--hairline)]">
+        {brand ? (
+          <span className="flex min-w-0 flex-1 items-center gap-2.5">
+            <Logo className="size-9 shrink-0" />
+            <span className="wordmark headline truncate text-[1.3rem]">ReadRx</span>
+          </span>
         ) : (
-          <button type="button" onClick={back} className="-ml-2 inline-flex min-h-12 flex-1 items-center gap-1.5 px-2 text-[1.05rem] font-bold">
+          <button type="button" onClick={back} className="btn btn-quiet btn-sm -ml-1 gap-1.5 pr-4 pl-3">
             <ArrowLeft className="size-5" aria-hidden /> Back
           </button>
         )}
+        {!brand && <span className="flex-1" />}
         <button
           type="button"
-          onClick={() => setPrefs((p) => ({ ...p, large: !p.large }))}
+          onClick={() => editPrefs({ large: !prefs.large })}
           aria-pressed={prefs.large}
           aria-label="Larger text"
-          className={`inline-flex min-h-12 min-w-12 items-baseline justify-center rounded-xl px-2 pt-2.5 text-[1.15rem] leading-none font-extrabold ring-1 ${prefs.large ? 'bg-ink text-white ring-ink' : 'bg-paper ring-rule'}`}
+          className={`btn btn-sm btn-icon items-baseline pt-1 leading-none ${prefs.large ? '' : 'btn-glass'}`}
         >
-          <span className="text-[0.7em]">A</span>A
+          <span className="text-[0.75em]">A</span>
+          <span className="-ml-2 text-[1.2em]">A</span>
         </button>
-        <button type="button" onClick={() => setLangOpen(true)} className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-paper px-3 text-[1rem] font-bold ring-1 ring-rule" aria-label={`Language: ${langName}. Change`}>
-          <Languages className="size-5" aria-hidden />
-          <span lang={lang}>{langName}</span>
+        <button type="button" onClick={() => setLangOpen(true)} className="btn btn-glass btn-sm gap-2 px-3" aria-label={`Language: ${langName}. Change`}>
+          <Languages className="size-5 shrink-0" aria-hidden />
+          <span lang={lang} className="lang-name">
+            {langName}
+          </span>
         </button>
       </header>
 
       <main className="flex flex-1 flex-col">
+        {screen.name === 'setup' && (
+          <Setup
+            profile={profile}
+            prefs={prefs}
+            onProfile={editProfile}
+            onPrefs={editPrefs}
+            onLanguage={() => setLangOpen(true)}
+            onBack={() => go({ name: 'welcome' })}
+            onDone={() => {
+              editProfile({ setupDone: true });
+              go({ name: 'home' });
+            }}
+          />
+        )}
+        {screen.name === 'profile' && <ProfileScreen profile={profile} prefs={prefs} onProfile={editProfile} onPrefs={editPrefs} onLanguage={() => setLangOpen(true)} onDone={() => go({ name: 'home' })} />}
         {screen.name === 'home' && (
           <Home
             meds={meds}
             lang={lang}
+            profile={profile}
+            onProfile={() => go({ name: 'profile' })}
             onScan={(kind) => go({ name: 'capture', kind, files: [] })}
             onSample={() => startReview(SAMPLE_LABEL)}
             onOpen={(id) => go({ name: 'med', id })}
@@ -141,6 +192,7 @@ export default function App() {
             rate={prefs.rate}
             autoplay={!!screen.autoplay}
             reminders={reminders}
+            profile={profile}
             onRate={(rate) => setPrefs((p) => ({ ...p, rate }))}
             onSupply={(supply) => setMeds((list) => list.map((m) => (m.id === med.id ? { ...m, supply } : m)))}
             onCheckPill={() => go({ name: 'pill', id: med.id })}
@@ -152,16 +204,16 @@ export default function App() {
         )}
         {screen.name === 'pill' && med && <PillCheck med={med} />}
         {'id' in screen && !med && (
-          <p className="mt-6 text-[1.05rem]">
+          <p className="card mt-6 p-4 text-[1.05rem]">
             This medicine was removed.{' '}
-            <button type="button" className="font-bold underline" onClick={() => go({ name: 'home' })}>
+            <button type="button" className="min-h-12 font-bold text-accent-deep underline underline-offset-4" onClick={() => go({ name: 'home' })}>
               Go to your medicines
             </button>
           </p>
         )}
       </main>
 
-      {langOpen && <LanguageSheet value={lang} onPick={(l) => setPrefs((p) => ({ ...p, lang: l }))} onClose={() => setLangOpen(false)} />}
+      {sheet}
     </div>
   );
 }

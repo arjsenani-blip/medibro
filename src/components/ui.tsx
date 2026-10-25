@@ -1,21 +1,24 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, CSSProperties, HTMLAttributes, ReactNode } from 'react';
+import { Phone } from 'lucide-react';
+import { telHref } from '../lib/store';
 
-type Variant = 'primary' | 'accent' | 'quiet' | 'danger';
+/* Tinted-glass controls and floating cards (see src/index.css and
+   design/DESIGN-LANGUAGE.md). Every control is at least 48px tall. */
+
+type Variant = 'primary' | 'glass' | 'quiet' | 'danger';
 
 const VARIANT: Record<Variant, string> = {
-  primary: 'bg-ink text-white active:bg-black',
-  accent: 'bg-amber text-white active:brightness-90',
-  quiet: 'bg-paper text-ink ring-1 ring-rule active:bg-ground',
-  danger: 'bg-stop text-white active:brightness-90',
+  primary: 'btn-primary',
+  glass: 'btn-glass',
+  quiet: 'btn-quiet',
+  danger: 'btn-danger',
 };
+
+export const buttonClass = (variant: Variant = 'primary', extra = '') => `btn ${VARIANT[variant]} min-h-14 w-full ${extra}`;
 
 export function Button({ variant = 'primary', icon, children, className = '', ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; icon?: ReactNode }) {
   return (
-    <button
-      type="button"
-      {...rest}
-      className={`inline-flex min-h-14 w-full items-center justify-center gap-2.5 rounded-xl px-5 text-[1.05rem] font-bold disabled:opacity-50 ${VARIANT[variant]} ${className}`}
-    >
+    <button type="button" {...rest} className={buttonClass(variant, className)}>
       {icon}
       {children}
     </button>
@@ -25,7 +28,7 @@ export function Button({ variant = 'primary', icon, children, className = '', ..
 /** A file picker styled as a button. `capture` opens the camera directly on phones. */
 export function PhotoButton({ onFile, capture, variant = 'primary', icon, children }: { onFile: (f: File) => void; capture?: boolean; variant?: Variant; icon?: ReactNode; children: ReactNode }) {
   return (
-    <label className={`inline-flex min-h-14 w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl px-5 text-[1.05rem] font-bold focus-within:outline-2 focus-within:outline-amber ${VARIANT[variant]}`}>
+    <label className={buttonClass(variant, 'focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-accent-deep')}>
       {icon}
       {children}
       <input
@@ -43,22 +46,90 @@ export function PhotoButton({ onFile, capture, variant = 'primary', icon, childr
   );
 }
 
+/** A call button, or nothing when the number can't be dialed. */
+export function CallButton({ phone, variant = 'primary', children, className = '' }: { phone: string; variant?: Variant; children?: ReactNode; className?: string }) {
+  const href = telHref(phone);
+  if (!href) return null;
+  return (
+    <a href={href} className={buttonClass(variant, className)}>
+      <Phone className="size-5 shrink-0" aria-hidden />
+      {children ?? (
+        <>
+          Call <span className="whitespace-nowrap">{phone}</span>
+        </>
+      )}
+    </a>
+  );
+}
+
 export function BottomBar({ children }: { children: ReactNode }) {
   return (
-    <div className="safe-bottom sticky bottom-0 z-10 -mx-4 mt-6 border-t border-rule bg-ground px-4 pt-3">
-      <div className="space-y-2">{children}</div>
+    <div className="bar safe-bottom sticky bottom-0 z-10 -mx-4 mt-auto px-4 pt-3 shadow-[0_-1px_0_var(--hairline)]">
+      <div className="space-y-2.5 pt-0">{children}</div>
     </div>
   );
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+/** Space above the bottom bar, so the last card isn't pressed against it. */
+export const Spacer = () => <div className="min-h-6 flex-1" aria-hidden />;
+
+/** A floating card. `i` staggers its entrance. */
+export function Card({ children, className = '', i, as: Tag = 'section', ...rest }: { children: ReactNode; className?: string; i?: number; as?: 'section' | 'div' | 'article' | 'figure' | 'ul' } & Omit<HTMLAttributes<HTMLElement>, 'children' | 'className'>) {
+  return (
+    <Tag {...rest} className={`card rise ${className}`} style={{ '--i': i ?? 0 } as CSSProperties}>
+      {children}
+    </Tag>
+  );
+}
+
+/** A card's small heading: an icon in a glass tile, then sentence-case words. */
+export function CardTitle({ icon, children, id }: { icon?: ReactNode; children: ReactNode; id?: string }) {
+  return (
+    <h2 id={id} className="flex items-center gap-2.5 text-[1rem] font-bold text-muted">
+      {icon && <span className="glyph">{icon}</span>}
+      {children}
+    </h2>
+  );
+}
+
+export function PageTitle({ children, sub }: { children: ReactNode; sub?: ReactNode }) {
+  return (
+    <div className="rise mt-4 mb-1">
+      <h1 className="headline text-[1.75rem]">{children}</h1>
+      {sub && <p className="mt-1.5 text-[1.05rem] text-ink-strong">{sub}</p>}
+    </div>
+  );
+}
+
+export function Field({ label, hint, optional, children }: { label: string; hint?: ReactNode; optional?: boolean; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[0.9rem] font-bold text-ink">{label}</span>
+      <span className="mb-1.5 block text-[0.95rem] font-bold text-ink">
+        {label}
+        {optional && <span className="font-normal text-muted"> (optional)</span>}
+      </span>
       {children}
-      {hint && <span className="mt-1 block text-[0.85rem] text-muted">{hint}</span>}
+      {hint && <span className="mt-1 block text-[0.9rem] text-muted">{hint}</span>}
     </label>
   );
 }
 
-export const inputClass = 'w-full rounded-lg border border-rule bg-paper px-3 py-2.5 text-[1rem] text-ink outline-none focus:border-ink';
+export const inputClass = 'input';
+
+/** Two or three choices; the chosen one is glass, bold, and marked for screen readers. */
+export function Segmented<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: ReactNode }[]; onChange: (v: T) => void }) {
+  return (
+    <div role="radiogroup" aria-label={label} className="segmented">
+      {options.map((o) => (
+        <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)} className="btn btn-sm">
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The capsule mark. */
+export function Logo({ className = 'size-9' }: { className?: string }) {
+  return <img src="/icon-192.png" alt="" aria-hidden className={`${className} rounded-[26%] shadow-[var(--shadow-sm)]`} />;
+}

@@ -1,21 +1,22 @@
 import { useState } from 'react';
-import { Bell, BellOff, CalendarClock } from 'lucide-react';
+import { Bell, BellOff, CalendarClock, Store } from 'lucide-react';
 import type { LabelFields } from '../lib/parseLabel';
 import { isoDate, parseLabelDate, REMIND_DAYS, refilled, supplyStatus, type Supply } from '../lib/refill';
 import type { ReminderState } from '../lib/reminders';
-import { Button, Field, inputClass } from './ui';
+import { Button, CallButton, Card, CardTitle, Field, inputClass } from './ui';
 
 interface Props {
   supply: Supply | null;
   fields: LabelFields;
   reminders: ReminderState;
+  pharmacy: { name: string; phone: string; main: boolean } | null; // who to call for refills
   onChange: (s: Supply | null) => void;
 }
 
 const day = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
 /** Days left before this runs out, refills left, and refill reminders. */
-export default function SupplyCard({ supply, fields, reminders, onChange }: Props) {
+export default function SupplyCard({ supply, fields, reminders, pharmacy, onChange }: Props) {
   const [editing, setEditing] = useState(false);
   const [confirmRefill, setConfirmRefill] = useState(false);
 
@@ -31,15 +32,15 @@ export default function SupplyCard({ supply, fields, reminders, onChange }: Prop
   const refills = supply.refillsLeft == null ? 'Refills: not on the label' : supply.refillsLeft === 0 ? 'No refills left' : `${supply.refillsLeft} refill${supply.refillsLeft > 1 ? 's' : ''} left`;
 
   return (
-    <section className="mt-5 rounded-2xl bg-paper p-4 ring-1 ring-rule" aria-labelledby="supply-title">
-      <h2 id="supply-title" className="flex items-center gap-2 text-[0.95rem] font-bold text-muted">
-        <CalendarClock className="size-5" aria-hidden /> Supply
-      </h2>
-      <p className={`mt-1 text-[2.4rem] leading-none font-extrabold ${color}`} aria-live="polite">
+    <Card i={2} className="mt-4 p-4" aria-labelledby="supply-title">
+      <CardTitle id="supply-title" icon={<CalendarClock className="size-5" aria-hidden />}>
+        Supply and refills
+      </CardTitle>
+      <p className={`headline mt-3 text-[2.4rem] leading-none ${color}`} aria-live="polite">
         {st.daysLeft > 1 ? `${st.daysLeft} days left` : st.daysLeft === 1 ? '1 day left' : st.daysLeft === 0 ? 'Runs out today' : 'Ran out'}
       </p>
-      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-rule" aria-hidden>
-        <div className={`h-full ${bar}`} style={{ width: `${share * 100}%` }} />
+      <div className="mt-3 h-3 overflow-hidden rounded-full bg-surface shadow-[inset_0_0_0_1px_var(--hairline)]" aria-hidden>
+        <div className={`h-full rounded-full ${bar}`} style={{ width: `${share * 100}%` }} />
       </div>
       <p className="mt-2.5 text-[1rem]">
         {st.daysLeft > 0 ? `Runs out about ${day(st.runOut)}.` : `Ran out about ${day(st.runOut)}.`} {st.daysLeft > supply.remindDays && `Refill by ${day(st.refillBy)}.`}
@@ -47,16 +48,34 @@ export default function SupplyCard({ supply, fields, reminders, onChange }: Prop
       <p className={`mt-0.5 text-[1rem] font-bold ${supply.refillsLeft === 0 ? 'text-stop' : ''}`}>{refills}</p>
 
       {st.due && (
-        <p className={`mt-3 rounded-xl p-3 text-[1rem] font-bold ${tone === 'stop' ? 'bg-stop-wash text-stop' : 'bg-amber-wash'}`}>
-          {supply.refillsLeft === 0
-            ? 'Time to refill, and there are no refills left. Call your pharmacy: they can ask your prescriber for a new prescription.'
-            : 'Time to refill. Call your pharmacy to ask for it.'}
-        </p>
+        <div className={`mt-3 rounded-[14px] p-3.5 shadow-[inset_0_0_0_1px_currentColor] ${tone === 'stop' ? 'bg-stop-wash text-stop' : 'bg-amber-wash text-amber'}`}>
+          <p className="text-[1rem] font-bold">
+            {supply.refillsLeft === 0
+              ? `Time to refill, and there are no refills left. Call ${pharmacy?.name ?? 'your pharmacy'}: they can ask your prescriber for a new prescription.`
+              : `Time to refill. Call ${pharmacy?.name ?? 'your pharmacy'} to ask for it.`}
+          </p>
+          {pharmacy?.phone && <CallButton phone={pharmacy.phone} className="mt-3">Call {pharmacy.name}</CallButton>}
+        </div>
+      )}
+
+      {pharmacy && !(st.due && pharmacy.phone) && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] bg-surface p-3">
+          <Store className="size-5 shrink-0 text-muted" aria-hidden />
+          <p className="min-w-0 flex-1 text-[1rem]">
+            <span className="block text-[0.9rem] text-muted">{pharmacy.main ? 'Your pharmacy' : 'Refills from'}</span>
+            <span className="block font-bold">{pharmacy.name}</span>
+          </p>
+          {pharmacy.phone && (
+            <CallButton phone={pharmacy.phone} variant="glass" className="!w-auto">
+              Call
+            </CallButton>
+          )}
+        </div>
       )}
 
       <div className="mt-4 space-y-2">
         {confirmRefill ? (
-          <div className="rounded-xl bg-ground p-3">
+          <div className="rounded-[14px] bg-surface p-3">
             <p className="text-[1rem]">
               Start a new {supply.daysSupply}-day count from today{supply.refillsLeft ? ` and use 1 refill (${supply.refillsLeft - 1} left after this)` : ''}?
             </p>
@@ -68,32 +87,32 @@ export default function SupplyCard({ supply, fields, reminders, onChange }: Prop
             </div>
           </div>
         ) : (
-          <Button variant="quiet" onClick={() => setConfirmRefill(true)}>
+          <Button variant="glass" onClick={() => setConfirmRefill(true)}>
             I picked up a refill
           </Button>
         )}
 
         {reminders !== 'unsupported' && (
           <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl px-1 text-[1rem]">
-            {supply.reminders ? <Bell className="size-5 shrink-0 text-amber" aria-hidden /> : <BellOff className="size-5 shrink-0 text-muted" aria-hidden />}
+            {supply.reminders ? <Bell className="size-5 shrink-0 text-accent-deep" aria-hidden /> : <BellOff className="size-5 shrink-0 text-muted" aria-hidden />}
             <span className="flex-1">
               <span className="block font-bold">Remind me to refill</span>
               <span className="block text-[0.9rem] text-muted">
                 {supply.reminders ? `A notification ${supply.remindDays} days before it runs out, and the day before` : 'Off'}
               </span>
             </span>
-            <input type="checkbox" className="size-6 accent-[var(--color-amber)]" checked={supply.reminders} onChange={(e) => onChange({ ...supply, reminders: e.target.checked })} />
+            <input type="checkbox" className="size-7 accent-[var(--accent-deep)]" checked={supply.reminders} onChange={(e) => onChange({ ...supply, reminders: e.target.checked })} />
           </label>
         )}
         {supply.reminders && reminders === 'denied' && (
           <p className="text-[0.9rem] text-stop">Notifications are turned off for ReadRx. To get reminders: Settings → Notifications → ReadRx → Allow Notifications.</p>
         )}
 
-        <button type="button" className="min-h-12 text-[1rem] font-bold text-muted underline decoration-rule underline-offset-4" onClick={() => setEditing(true)}>
+        <button type="button" className="min-h-12 text-[1rem] font-bold text-accent-deep underline decoration-[rgba(var(--accent-rgb),.6)] decoration-2 underline-offset-4" onClick={() => setEditing(true)}>
           Change days supply or refills
         </button>
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -106,11 +125,11 @@ function SupplyForm({ supply, fields, onSave, onCancel }: { supply: Supply | nul
   const valid = Number.isInteger(n) && n > 0 && n <= 400 && /^\d{4}-\d{2}-\d{2}$/.test(start);
 
   return (
-    <section className="mt-5 rounded-2xl bg-paper p-4 ring-1 ring-rule" aria-labelledby="supply-form-title">
-      <h2 id="supply-form-title" className="text-[1.1rem] font-extrabold">
+    <Card i={2} className="mt-4 p-4" aria-labelledby="supply-form-title">
+      <h2 id="supply-form-title" className="headline text-[1.2rem]">
         {supply ? 'Change supply' : 'Track how long this lasts'}
       </h2>
-      {!supply && <p className="mt-1 text-[0.95rem] text-muted">ReadRx couldn’t work out the days supply from the label. Ask your pharmacy, or look for “days supply” on the label or receipt.</p>}
+      {!supply && <p className="mt-1 text-[1rem] text-muted">ReadRx couldn’t work out the days supply from the label. Ask your pharmacy, or look for “days supply” on the label or receipt.</p>}
       <div className="mt-3 grid grid-cols-2 gap-3">
         <Field label="Days supply">
           <input className={inputClass} inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value.replace(/\D/g, ''))} />
@@ -139,6 +158,6 @@ function SupplyForm({ supply, fields, onSave, onCancel }: { supply: Supply | nul
           </Button>
         )}
       </div>
-    </section>
+    </Card>
   );
 }
