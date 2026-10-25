@@ -31,7 +31,7 @@ export const MESH_ALPHA = [0.3, 0.22, 0.17, 0.13];
     gets a field in its own family (cyan: blue, indigo and teal). */
 const MESH_HUES = [0, 30, 62, -32];
 /** The strongest accent wash a control gets (pressed), over the card. */
-export const TINT_ON_ALPHA = 0.3;
+export const TINT_ON_ALPHA = 0.4;
 
 export function hexToRgb(hex: string): RGB | null {
   const m = /^#?([\da-f]{3}|[\da-f]{6})$/i.exec(hex.trim());

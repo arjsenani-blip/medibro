@@ -101,9 +101,9 @@ export function PageTitle({ children, sub }: { children: ReactNode; sub?: ReactN
   );
 }
 
-export function Field({ label, hint, optional, children }: { label: string; hint?: ReactNode; optional?: boolean; children: ReactNode }) {
+export function Field({ label, hint, optional, wide, children }: { label: string; hint?: ReactNode; optional?: boolean; wide?: boolean; children: ReactNode }) {
   return (
-    <label className="block">
+    <label className={`block ${wide ? 'col-span-2' : ''}`}>
       <span className="mb-1.5 block text-[0.95rem] font-bold text-ink">
         {label}
         {optional && <span className="font-normal text-muted"> (optional)</span>}

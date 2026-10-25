@@ -59,8 +59,9 @@ export default function Setup({ profile, prefs, onProfile, onPrefs, onLanguage, 
       <Spacer />
       <BottomBar>
         <Button onClick={next} disabled={s.required && !s.filled} icon={last ? <Check className="size-6" aria-hidden /> : undefined} variant={s.filled ? 'primary' : 'glass'}>
-          {last ? 'Finish' : s.filled ? 'Next' : 'Skip for now'}
+          {last ? 'Finish' : s.filled || s.required ? 'Next' : 'Skip for now'}
         </Button>
+        {s.required && !s.filled && <p className="text-center text-[1rem] text-ink-strong">Type your name to go on.</p>}
         <Button variant="quiet" onClick={() => (step ? setStep(step - 1) : onBack())} icon={<ArrowLeft className="size-5" aria-hidden />}>
           Back
         </Button>

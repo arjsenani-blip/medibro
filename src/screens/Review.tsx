@@ -54,9 +54,9 @@ export default function Review({ fields, raw, lang, onSave, onAddPhoto, onCancel
       )}
 
       <Card as="div" i={1} className="mt-4 space-y-4 p-4">
-        <div className="grid grid-cols-[1fr_7.5rem] gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {MAIN.map((m) => (
-            <Field key={m.key} label={m.label}>
+            <Field key={m.key} label={m.label} wide={m.key === 'drug'}>
               <input className={inputClass} value={f[m.key]} onChange={set(m.key)} autoCapitalize="characters" />
             </Field>
           ))}

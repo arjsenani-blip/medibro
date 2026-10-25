@@ -28,7 +28,7 @@ export default function Welcome({ onStart }: { onStart: () => void }) {
         </h1>
         <p className="intro-tag mt-3 max-w-[22ch] text-[1.25rem] leading-snug font-medium text-ink-strong">Reads your prescription labels out loud, in your language.</p>
         <p className="intro-tag mt-4 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.95rem] font-bold text-accent-deep shadow-[inset_0_0_0_1px_var(--tint-ring)] [background:var(--tint),var(--color-card)]">
-          Read the label · Hear it · Check the pill
+          Read · Listen · Check
         </p>
       </div>
       <div className="intro-cta safe-bottom w-full max-w-[30rem] pt-6">
