@@ -1,4 +1,4 @@
-import { ChevronRight, Package, PillBottle, Plus, Stethoscope, Store, TriangleAlert, UserRound, Volume2 } from 'lucide-react';
+import { ChevronRight, MessageCircleQuestion, Package, PillBottle, Plus, Stethoscope, Store, TriangleAlert, UserRound, Volume2 } from 'lucide-react';
 import type { LabelKind } from '../lib/extract';
 import type { Medicine, Profile } from '../lib/store';
 import type { Lang } from '../lib/sig';
@@ -16,11 +16,12 @@ interface Props {
   onOpen: (id: string) => void;
   onListen: (m: Medicine) => void;
   onProfile: () => void;
+  onAssistant: () => void;
 }
 
 const EXAMPLE = parseSig('TAKE 1 TAB PO BID').sig!;
 
-export default function Home({ meds, lang, profile, onScan, onSample, onOpen, onListen, onProfile }: Props) {
+export default function Home({ meds, lang, profile, onScan, onSample, onOpen, onListen, onProfile, onAssistant }: Props) {
   const firstName = profile.name.trim().split(/\s+/)[0];
   const greeting = (
     <div className="rise mt-4 flex items-center gap-3">
@@ -56,7 +57,9 @@ export default function Home({ meds, lang, profile, onScan, onSample, onOpen, on
           </div>
         </Card>
 
-        <p className="rise mt-4 text-[1rem] text-ink-strong" style={{ '--i': 3 } as React.CSSProperties}>
+        <AskCard i={3} onAssistant={onAssistant} />
+
+        <p className="rise mt-4 text-[1rem] text-ink-strong" style={{ '--i': 4 } as React.CSSProperties}>
           Your photos and medicines stay on this phone.
         </p>
 
@@ -109,6 +112,7 @@ export default function Home({ meds, lang, profile, onScan, onSample, onOpen, on
         })}
       </Card>
 
+      <AskCard i={2} onAssistant={onAssistant} />
       <CareCard profile={profile} due={due} onProfile={onProfile} />
 
       <Spacer />
@@ -116,6 +120,24 @@ export default function Home({ meds, lang, profile, onScan, onSample, onOpen, on
         <ScanButtons onScan={onScan} />
       </BottomBar>
     </div>
+  );
+}
+
+/** The way into the symptom assistant. */
+function AskCard({ i, onAssistant }: { i: number; onAssistant: () => void }) {
+  return (
+    <Card as="div" i={i} className="mt-4 p-0">
+      <button type="button" onClick={onAssistant} className="flex min-h-16 w-full items-center gap-3 rounded-[20px] p-4 text-left">
+        <span className="glyph size-12">
+          <MessageCircleQuestion className="size-6" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[1.15rem] font-extrabold text-ink-strong">Ask about a symptom</span>
+          <span className="block text-[0.95rem] text-muted">Over-the-counter ideas for everyday symptoms. Not medical advice.</span>
+        </span>
+        <ChevronRight className="size-6 shrink-0 text-muted" aria-hidden />
+      </button>
+    </Card>
   );
 }
 

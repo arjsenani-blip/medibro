@@ -17,6 +17,7 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		9592386CE4F1733B2B4B252D /* LabelReaderPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D0DD80A2B648307FCE9D6CB /* LabelReaderPlugin.swift */; };
+		A0277C0171685704E435D2C3 /* ListenPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D168DD7C5B3624CF0721275 /* ListenPlugin.swift */; };
 		A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
 		B7FCAD067708D510A9C7102A /* LabelReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335D59A2DAA9C62904F921FE /* LabelReader.swift */; };
 /* End PBXBuildFile section */
@@ -34,6 +35,7 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		6405D3D6EB44B411BEC2C56D /* SpeechPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SpeechPlugin.swift; sourceTree = "<group>"; };
+		8D168DD7C5B3624CF0721275 /* ListenPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ListenPlugin.swift; sourceTree = "<group>"; };
 		AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		F7AFC6C4E5778A42732FF2E0 /* ReadRxViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReadRxViewController.swift; sourceTree = "<group>"; };
@@ -93,6 +95,7 @@
 				4D0DD80A2B648307FCE9D6CB /* LabelReaderPlugin.swift */,
 				F7AFC6C4E5778A42732FF2E0 /* ReadRxViewController.swift */,
 				6405D3D6EB44B411BEC2C56D /* SpeechPlugin.swift */,
+				8D168DD7C5B3624CF0721275 /* ListenPlugin.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -224,6 +227,7 @@
 				9592386CE4F1733B2B4B252D /* LabelReaderPlugin.swift in Sources */,
 				4499CA23C492C8AF97CFA4B5 /* ReadRxViewController.swift in Sources */,
 				04C8F48D521759D5257697FB /* SpeechPlugin.swift in Sources */,
+				A0277C0171685704E435D2C3 /* ListenPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

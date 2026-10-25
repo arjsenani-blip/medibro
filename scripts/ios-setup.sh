@@ -68,9 +68,11 @@ PLIST="ios/App/App/Info.plist"
 set_key () {
   /usr/libexec/PlistBuddy -c "Set :$1 $2" "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :$1 string $2" "$PLIST"
 }
-echo "› Adding camera and photo permission messages…"
+echo "› Adding camera, photo, microphone and speech permission messages…"
 set_key NSCameraUsageDescription "ReadRx uses the camera to read prescription labels and check pills. Photos stay on this phone."
 set_key NSPhotoLibraryUsageDescription "ReadRx can read a label or pill from a photo you already took. Photos stay on this phone."
+set_key NSMicrophoneUsageDescription "ReadRx listens when you tap the microphone to ask about a symptom. What you say stays on this phone."
+set_key NSSpeechRecognitionUsageDescription "ReadRx turns your spoken question into text on this phone. It is never sent anywhere."
 set_key CFBundleDisplayName "ReadRx"
 
 # iOS 27 won't launch apps built with the current SDK unless they use the UIScene lifecycle,
@@ -118,7 +120,7 @@ fi
 
 # ReadRx's native label reader (Apple Vision + the on-device model), kept in native/ios
 echo "› Adding the on-device label reader, read-aloud and app icon…"
-NATIVE_FILES=(LabelReader.swift LabelReaderPlugin.swift SpeechPlugin.swift ReadRxViewController.swift)
+NATIVE_FILES=(LabelReader.swift LabelReaderPlugin.swift SpeechPlugin.swift ListenPlugin.swift ReadRxViewController.swift)
 for f in "${NATIVE_FILES[@]}"; do cp -f "native/ios/$f" "ios/App/App/$f"; done
 # xcodeproj comes with CocoaPods; Homebrew's CocoaPods keeps it in its own gem folder
 pod_ruby () {

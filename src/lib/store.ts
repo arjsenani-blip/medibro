@@ -129,3 +129,24 @@ export function refillPharmacy(f: LabelFields, profile: Profile): { name: string
   if (f.pharmacy) return { name: title(f.pharmacy), phone: '', main: false };
   return null;
 }
+
+/* The symptom assistant asks once, before first use, that the person accept
+   that it isn't medical advice. Bump the version if the wording changes, so
+   everyone is asked again. */
+const OTC_CONSENT = 'readrx:otc-consent';
+export const OTC_CONSENT_VERSION = 1;
+export function hasOtcConsent(): boolean {
+  try {
+    const c = JSON.parse(localStorage.getItem(OTC_CONSENT) ?? 'null') as { version?: number } | null;
+    return c?.version === OTC_CONSENT_VERSION;
+  } catch {
+    return false;
+  }
+}
+export function acceptOtcConsent(at = new Date()) {
+  try {
+    localStorage.setItem(OTC_CONSENT, JSON.stringify({ version: OTC_CONSENT_VERSION, at: at.toISOString() }));
+  } catch {
+    /* ignore: they'll be asked again next time */
+  }
+}

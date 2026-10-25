@@ -14,6 +14,7 @@ import { Logo } from './components/ui';
 import Welcome from './screens/Welcome';
 import Setup from './screens/Setup';
 import ProfileScreen from './screens/ProfileScreen';
+import Assistant from './screens/Assistant';
 import Home from './screens/Home';
 import Scan from './screens/Scan';
 import Capture from './screens/Capture';
@@ -26,6 +27,7 @@ type Screen =
   | { name: 'welcome' }
   | { name: 'setup' }
   | { name: 'profile' }
+  | { name: 'assistant' }
   | { name: 'home' }
   | { name: 'capture'; kind: LabelKind; files: File[] }
   | { name: 'scan'; files: File[]; kind: LabelKind; prior: string; back: Screen } // `prior` = text from earlier photos of the same label
@@ -141,6 +143,7 @@ export default function App() {
             }}
           />
         )}
+        {screen.name === 'assistant' && <Assistant profile={profile} meds={meds} rate={prefs.rate} onLeave={() => go({ name: 'home' })} onProfile={() => go({ name: 'profile' })} />}
         {screen.name === 'profile' && <ProfileScreen profile={profile} prefs={prefs} onProfile={editProfile} onPrefs={editPrefs} onLanguage={() => setLangOpen(true)} onDone={() => go({ name: 'home' })} />}
         {screen.name === 'home' && (
           <Home
@@ -148,6 +151,7 @@ export default function App() {
             lang={lang}
             profile={profile}
             onProfile={() => go({ name: 'profile' })}
+            onAssistant={() => go({ name: 'assistant' })}
             onScan={(kind) => go({ name: 'capture', kind, files: [] })}
             onSample={() => startReview(SAMPLE_LABEL)}
             onOpen={(id) => go({ name: 'med', id })}

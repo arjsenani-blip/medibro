@@ -5,7 +5,7 @@ ReadRx is for older adults, people with low vision, and people who don't read En
 2. **Explain it.** It rewrites the directions and warning stickers in plain language, in English, Spanish, Portuguese, Chinese, Vietnamese or French, and reads them aloud.
 3. **Check a pill.** Before you take a pill, photograph it and ReadRx checks its color, shape and stamped imprint against what that medicine should look like.
 
-Everything happens on the phone: label reading, color analysis and storage. Photos and medicines are never uploaded. The only network request is the FDA lookup of what a pill should look like.
+Everything happens on the phone: label reading, color analysis and storage. Photos and medicines are never uploaded. The only network request is the FDA lookup of what a pill should look like (plus the web font, which falls back to the system font offline).
 
 ## Install and run (Mac)
 
@@ -72,6 +72,8 @@ After changing the code, run `npm run ios:update`, then press ▶ in Xcode. Afte
 | Pharmacy | Name, address (opens Apple Maps for directions) and a call button, read from the label | `src/lib/parseLabel.ts`, `src/screens/MedicineView.tsx` |
 | Check the photo | Separate the pill from a plain background, take its typical color and measure its proportions. No machine learning. | `src/lib/pillImage.ts` |
 | Decide | "Matches" only when color, shape **and** the stamp you confirm all agree. Any mismatch says "Don't take this pill yet" and offers to call the pharmacy. | `src/screens/PillCheck.tsx` |
+| Ask about a symptom | Say or type a symptom. A curated offline list of FDA OTC monograph ingredients only (no prescription entries) is matched on the phone: no model, no network. Emergency signs skip suggestions and show 911 / 988 / Poison Control. Suggestions are checked against your allergies and saved medicines (same ingredient twice, NSAIDs with blood thinners, decongestants with blood-pressure medicines, sleepy antihistamines at 65+). No doses: always the package label. Consent is required before first use, and disclaimers appear on every answer and are spoken aloud | `src/lib/otc/`, `src/screens/Assistant.tsx`, `native/ios/ListenPlugin.swift` (on-device `SFSpeechRecognizer`) |
+| Profile and theme | Name, main pharmacy, birth date, doctor, allergies, language, text size and theme color, saved on the phone only. The theme color drives the background and buttons; accent text is darkened per color to 7:1 | `src/lib/store.ts`, `src/lib/theme.ts`, `src/screens/Setup.tsx`, `src/screens/ProfileScreen.tsx` |
 
 **Why the stamp matters most:** many pills are small, white and round. The imprint code is how pharmacists tell look-alikes apart, and phone cameras can't read it reliably. So ReadRx asks you to confirm it instead of guessing.
 
