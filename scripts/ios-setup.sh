@@ -2,6 +2,7 @@
 # Creates (or updates) the ReadRx Xcode project and opens it in Xcode.
 # Run from the readrx folder:  npm run ios
 set -euo pipefail
+cd "$(dirname "$0")/.."
 
 if [[ "$(uname)" != "Darwin" ]]; then
   echo "This needs a Mac with Xcode." >&2; exit 1
@@ -42,11 +43,11 @@ if [[ -d ios && ( ! -d ios/App/App.xcodeproj || ! -f ios/App/Podfile ) ]]; then
 fi
 
 echo "› Building the app…"
-npx vite build
+./node_modules/.bin/vite build
 
 if [[ ! -d ios ]]; then
   echo "› Creating the iOS project…"
-  npx cap add ios
+  ./node_modules/.bin/cap add ios
 fi
 
 # Current Xcode only supports iOS 15.0+ deployment targets; Capacitor's template uses 14.0
@@ -62,7 +63,7 @@ if ! grep -q "readrx-min-ios" ios/App/Podfile; then
 \1end/" ios/App/Podfile
 fi
 
-npx cap sync ios
+./node_modules/.bin/cap sync ios
 
 PLIST="ios/App/App/Info.plist"
 set_key () {
