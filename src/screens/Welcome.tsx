@@ -26,16 +26,12 @@ export default function Welcome({ onStart }: { onStart: () => void }) {
             </span>
           ))}
         </h1>
-        <p className="intro-tag mt-3 max-w-[22ch] text-[1.25rem] leading-snug font-medium text-ink-strong">Reads your prescription labels out loud, in your language.</p>
-        <p className="intro-tag mt-4 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.95rem] font-bold text-accent-deep shadow-[inset_0_0_0_1px_var(--tint-ring)] [background:var(--tint),var(--color-card)]">
-          Read · Listen · Check
-        </p>
+        <p className="intro-tag mt-3 max-w-[22ch] text-[1.25rem] leading-snug font-medium text-ink-strong">Your prescription labels, read out loud.</p>
       </div>
       <div className="intro-cta safe-bottom w-full max-w-[30rem] pt-6">
         <button type="button" onClick={onStart} className="btn btn-primary min-h-16 w-full text-[1.2rem]">
           Get started <ArrowRight className="size-6" aria-hidden />
         </button>
-        <p className="mt-3 mb-1 text-[1rem] text-ink-strong">Everything stays on this phone.</p>
       </div>
     </div>
   );

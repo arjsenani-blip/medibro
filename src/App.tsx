@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Languages } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { parseLabel, SAMPLE_LABEL, type LabelFields } from './lib/parseLabel';
-import { LANGUAGES } from './lib/sig';
 import { loadMedicines, loadPrefs, loadProfile, saveMedicines, savePrefs, saveProfile, type Medicine, type Prefs, type Profile } from './lib/store';
 import { applyAccent } from './lib/theme';
 import { plainLabel, spokenLines } from './lib/plain';
@@ -80,7 +79,6 @@ export default function App() {
 
   const med = 'id' in screen ? meds.find((m) => m.id === screen.id) : undefined;
   const lang = prefs.lang;
-  const langName = LANGUAGES.find((l) => l.code === lang)!.name;
 
   const ambient = <div className={`ambient ${screen.name === 'welcome' ? 'hero' : ''}`} aria-hidden />;
   const sheet = langOpen && <LanguageSheet value={lang} onPick={(l) => editPrefs({ lang: l })} onClose={() => setLangOpen(false)} />;
@@ -96,37 +94,22 @@ export default function App() {
 
   const brand = screen.name === 'home' || screen.name === 'setup';
   return (
-    <div className="mx-auto flex min-h-dvh max-w-[30rem] flex-col px-4">
+    <div className={`mx-auto flex min-h-dvh max-w-[30rem] flex-col px-4 ${screen.name === 'setup' ? 'safe-top' : ''}`}>
       {ambient}
-      <header className="bar safe-top sticky top-0 z-20 -mx-4 flex items-center gap-2 px-4 pb-2 shadow-[0_1px_0_var(--hairline)]">
+      {screen.name !== 'setup' && (
+      <header className="bar safe-top sticky top-0 z-20 -mx-4 flex min-h-[3.75rem] items-center gap-2 px-4 pb-2">
         {brand ? (
-          <span className="flex min-w-0 flex-1 items-center gap-2.5">
+          <span className="flex items-center gap-2.5">
             <Logo className="size-9 shrink-0" />
-            <span className="wordmark headline truncate text-[1.3rem]">ReadRx</span>
+            <span className="headline text-[1.25rem]">ReadRx</span>
           </span>
         ) : (
           <button type="button" onClick={back} className="btn btn-quiet btn-sm -ml-1 gap-1.5 pr-4 pl-3">
             <ArrowLeft className="size-5" aria-hidden /> Back
           </button>
         )}
-        {!brand && <span className="flex-1" />}
-        <button
-          type="button"
-          onClick={() => editPrefs({ large: !prefs.large })}
-          aria-pressed={prefs.large}
-          aria-label="Larger text"
-          className={`btn btn-sm btn-icon items-baseline pt-1 leading-none ${prefs.large ? '' : 'btn-glass'}`}
-        >
-          <span className="text-[0.75em]">A</span>
-          <span className="-ml-2 text-[1.2em]">A</span>
-        </button>
-        <button type="button" onClick={() => setLangOpen(true)} className="btn btn-glass btn-sm gap-2 px-3" aria-label={`Language: ${langName}. Change`}>
-          <Languages className="size-5 shrink-0" aria-hidden />
-          <span lang={lang} className="lang-name">
-            {langName}
-          </span>
-        </button>
       </header>
+      )}
 
       <main className="flex flex-1 flex-col">
         {screen.name === 'setup' && (

@@ -1,11 +1,10 @@
-import { ChevronRight, MessageCircleQuestion, Package, PillBottle, Plus, Stethoscope, Store, TriangleAlert, UserRound, Volume2 } from 'lucide-react';
+import { ChevronRight, MessageCircle, Package, Phone, PillBottle, Settings, Volume2 } from 'lucide-react';
 import type { LabelKind } from '../lib/extract';
-import type { Medicine, Profile } from '../lib/store';
+import { telHref, type Medicine, type Profile } from '../lib/store';
 import type { Lang } from '../lib/sig';
-import { parseSig, writeSig } from '../lib/sig';
 import { plainLabel } from '../lib/plain';
 import { supplyStatus } from '../lib/refill';
-import { BottomBar, Button, CallButton, Card, CardTitle, Spacer } from '../components/ui';
+import { BottomBar, Card, Spacer } from '../components/ui';
 
 interface Props {
   meds: Medicine[];
@@ -19,187 +18,79 @@ interface Props {
   onAssistant: () => void;
 }
 
-const EXAMPLE = parseSig('TAKE 1 TAB PO BID').sig!;
-
 export default function Home({ meds, lang, profile, onScan, onSample, onOpen, onListen, onProfile, onAssistant }: Props) {
   const firstName = profile.name.trim().split(/\s+/)[0];
-  const greeting = (
-    <div className="rise mt-4 flex items-center gap-3">
-      <h1 className="headline min-w-0 flex-1 text-[1.9rem] break-words">{firstName ? `Hello, ${firstName}` : 'Hello'}</h1>
-      <button type="button" onClick={onProfile} className="btn btn-glass btn-sm shrink-0 gap-2 rounded-full pr-4 pl-3" aria-label="Your profile and settings">
-        <UserRound className="size-5" aria-hidden />
-        Profile
-      </button>
-    </div>
-  );
-
-  if (!meds.length) {
-    return (
-      <div className="flex min-h-full flex-1 flex-col">
-        {greeting}
-        <p className="rise mt-2 max-w-[34ch] text-[1.1rem] leading-snug text-ink-strong" style={{ '--i': 1 } as React.CSSProperties}>
-          Take a photo of a prescription label. ReadRx reads it out loud in your language, and helps you check a pill before you take it.
-        </p>
-
-        {/* the product in one glance: shorthand in, plain words out */}
-        <Card as="figure" i={2} className="mt-6 overflow-hidden">
-          <div className="px-4 pt-4">
-            <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[0.9rem] font-bold text-accent-deep shadow-[inset_0_0_0_1px_var(--tint-ring)] [background:var(--tint)]">
-              <span className="size-2 rounded-full bg-accent shadow-[0_0_6px_rgba(var(--accent-rgb),.9)]" aria-hidden /> On the bottle
-            </span>
-            <p className="pt-2.5 pb-4 text-[1.35rem] font-bold tracking-wide">TAKE 1 TAB PO BID</p>
-          </div>
-          <div className="border-t border-divider bg-paper px-4 pt-3 pb-4">
-            <p className="text-[0.95rem] font-bold text-muted">ReadRx says</p>
-            <p className="mt-1 text-[1.4rem] leading-snug font-bold text-ink-strong" lang={lang}>
-              {writeSig(EXAMPLE, lang)}
-            </p>
-          </div>
-        </Card>
-
-        <AskCard i={3} onAssistant={onAssistant} />
-
-        <p className="rise mt-4 text-[1rem] text-ink-strong" style={{ '--i': 4 } as React.CSSProperties}>
-          Your photos and medicines stay on this phone.
-        </p>
-
-        <Spacer />
-        <BottomBar>
-          <ScanButtons onScan={onScan} />
-          <button type="button" onClick={onSample} className="min-h-12 w-full text-[1rem] font-bold text-ink-strong underline decoration-[rgba(var(--accent-rgb),.7)] decoration-2 underline-offset-4">
-            Try it with a sample label
-          </button>
-        </BottomBar>
-      </div>
-    );
-  }
-
-  const due = meds.filter((m) => m.supply && supplyStatus(m.supply).due).length;
+  const pharmacyTel = telHref(profile.pharmacyPhone);
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      {greeting}
-      <h2 className="rise mt-5 text-[1.15rem] font-bold text-ink-strong" style={{ '--i': 1 } as React.CSSProperties}>
-        Your medicines
-      </h2>
-      <Card as="ul" i={1} className="mt-2.5 overflow-hidden">
-        {meds.map((m, i) => {
-          const p = plainLabel(m.fields, m.raw, lang);
-          const st = m.supply ? supplyStatus(m.supply) : null;
-          return (
-            <li key={m.id} className={`flex items-stretch ${i ? 'border-t border-divider' : ''}`}>
-              <button type="button" onClick={() => onOpen(m.id)} className="flex min-w-0 flex-1 items-center gap-2 py-3.5 pr-1 pl-4 text-left active:bg-[rgba(19,33,43,.055)]">
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[1.15rem] font-extrabold text-ink-strong">{p.name}</span>
-                  <span className="mt-0.5 block text-[1rem] leading-snug text-muted" lang={p.translated ? lang : 'en'}>
-                    {p.directions || 'No directions saved'}
+      <div className="rise mt-4 flex items-center gap-2">
+        <h1 className="headline min-w-0 flex-1 text-[2.2rem] break-words">{firstName ? `Hi, ${firstName}` : 'Hi'}</h1>
+        {pharmacyTel && (
+          <a href={pharmacyTel} className="btn btn-glass btn-icon size-13 shrink-0 rounded-full p-0" aria-label={`Call ${profile.pharmacyName || 'your pharmacy'}`}>
+            <Phone className="size-6" aria-hidden />
+          </a>
+        )}
+        <button type="button" onClick={onProfile} className="btn btn-glass btn-icon size-13 shrink-0 rounded-full p-0" aria-label="Settings">
+          <Settings className="size-6" aria-hidden />
+        </button>
+      </div>
+
+      {meds.length ? (
+        <Card as="ul" i={1} className="mt-6 overflow-hidden" aria-label="Your medicines">
+          {meds.map((m, i) => {
+            const p = plainLabel(m.fields, m.raw, lang);
+            const st = m.supply ? supplyStatus(m.supply) : null;
+            return (
+              <li key={m.id} className={`flex items-center ${i ? 'border-t border-divider' : ''}`}>
+                <button type="button" onClick={() => onOpen(m.id)} className="flex min-h-18 min-w-0 flex-1 items-center gap-2 py-3.5 pr-1 pl-4 text-left active:bg-[rgba(19,33,43,.055)]">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[1.2rem] font-extrabold text-ink-strong">{p.name}</span>
+                    {st && (st.due || st.daysLeft <= 0) ? (
+                      <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[0.95rem] font-bold shadow-[inset_0_0_0_1px_currentColor] ${st.daysLeft <= 0 ? 'bg-stop-wash text-stop' : 'bg-amber-wash text-amber'}`}>
+                        {st.daysLeft <= 0 ? 'Refill now' : `Refill · ${st.daysLeft} day${st.daysLeft === 1 ? '' : 's'}`}
+                      </span>
+                    ) : st ? (
+                      <span className="mt-0.5 block text-[1rem] text-muted">{st.daysLeft} days left</span>
+                    ) : null}
                   </span>
-                  {st && (
-                    <span className={`mt-1.5 inline-block rounded-full px-2.5 py-0.5 text-[0.95rem] font-bold shadow-[inset_0_0_0_1px_currentColor] ${st.daysLeft <= 0 ? 'bg-stop-wash text-stop' : st.due ? 'bg-amber-wash text-amber' : 'bg-ok-wash text-ok'}`}>
-                      {st.daysLeft <= 0 ? 'Ran out: refill now' : `${st.daysLeft} day${st.daysLeft === 1 ? '' : 's'} left${st.due ? ' · refill now' : ''}`}
-                    </span>
-                  )}
-                </span>
-                <ChevronRight className="size-6 shrink-0 text-muted" aria-hidden />
-              </button>
-              <div className="grid shrink-0 place-items-center border-l border-divider px-2.5">
-                <button type="button" onClick={() => onListen(m)} aria-label={`Read ${p.name} aloud`} className="btn btn-glass btn-icon min-h-13 min-w-13 rounded-full">
+                  <ChevronRight className="size-6 shrink-0 text-muted" aria-hidden />
+                </button>
+                <button type="button" onClick={() => onListen(m)} aria-label={`Read ${p.name} aloud`} className="btn btn-glass btn-icon mr-3 size-13 shrink-0 rounded-full p-0">
                   <Volume2 className="size-6" aria-hidden />
                 </button>
-              </div>
-            </li>
-          );
-        })}
-      </Card>
-
-      <AskCard i={2} onAssistant={onAssistant} />
-      <CareCard profile={profile} due={due} onProfile={onProfile} />
+              </li>
+            );
+          })}
+        </Card>
+      ) : (
+        <div className="rise mt-3" style={{ '--i': 1 } as React.CSSProperties}>
+          <p className="max-w-[28ch] text-[1.2rem] leading-snug text-ink-strong">Scan a prescription label and ReadRx reads it to you.</p>
+          <button type="button" onClick={onSample} className="mt-2 min-h-12 text-[1.05rem] font-bold text-accent-deep underline decoration-2 underline-offset-4">
+            Try a sample label
+          </button>
+        </div>
+      )}
 
       <Spacer />
       <BottomBar>
-        <ScanButtons onScan={onScan} />
+        <div className="grid grid-cols-2 gap-3">
+          <BigAction icon={<PillBottle className="size-8" aria-hidden />} label="Scan" primary onClick={() => onScan('bottle')} />
+          <BigAction icon={<MessageCircle className="size-8" aria-hidden />} label="Ask" onClick={onAssistant} hint="about a symptom" />
+        </div>
+        <button type="button" onClick={() => onScan('box')} className="flex min-h-12 w-full items-center justify-center gap-2 text-[1.05rem] font-bold text-ink-strong">
+          <Package className="size-5" aria-hidden /> Scan a box instead
+        </button>
       </BottomBar>
     </div>
   );
 }
 
-/** The way into the symptom assistant. */
-function AskCard({ i, onAssistant }: { i: number; onAssistant: () => void }) {
+function BigAction({ icon, label, hint, primary, onClick }: { icon: React.ReactNode; label: string; hint?: string; primary?: boolean; onClick: () => void }) {
   return (
-    <Card as="div" i={i} className="mt-4 p-0">
-      <button type="button" onClick={onAssistant} className="flex min-h-16 w-full items-center gap-3 rounded-[20px] p-4 text-left">
-        <span className="glyph size-12">
-          <MessageCircleQuestion className="size-6" aria-hidden />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[1.15rem] font-extrabold text-ink-strong">Ask about a symptom</span>
-          <span className="block text-[0.95rem] text-muted">Over-the-counter ideas for everyday symptoms. Not medical advice.</span>
-        </span>
-        <ChevronRight className="size-6 shrink-0 text-muted" aria-hidden />
-      </button>
-    </Card>
-  );
-}
-
-/** The person's pharmacy and doctor, with call buttons; or an offer to add them. */
-function CareCard({ profile, due, onProfile }: { profile: Profile; due: number; onProfile: () => void }) {
-  const hasPharmacy = !!(profile.pharmacyName || profile.pharmacyPhone);
-  const hasDoctor = !!(profile.doctorName || profile.doctorPhone);
-  return (
-    <Card i={2} className="mt-4 p-4" aria-labelledby="care-title">
-      <CardTitle id="care-title" icon={<Store className="size-5" aria-hidden />}>
-        Your pharmacy
-      </CardTitle>
-      {due > 0 && (
-        <p className="mt-3 flex gap-2 rounded-[14px] bg-amber-wash p-3 text-[1rem] font-bold text-amber shadow-[inset_0_0_0_1px_currentColor]">
-          <TriangleAlert className="mt-0.5 size-5 shrink-0" aria-hidden />
-          {due === 1 ? '1 medicine needs a refill.' : `${due} medicines need a refill.`}
-        </p>
-      )}
-      {hasPharmacy ? (
-        <>
-          <p className="mt-3 text-[1.2rem] font-extrabold text-ink-strong">{profile.pharmacyName || 'Your pharmacy'}</p>
-          {profile.pharmacyPhone && (
-            <CallButton phone={profile.pharmacyPhone} variant={due ? 'primary' : 'glass'} className="mt-3">
-              Call about refills
-            </CallButton>
-          )}
-        </>
-      ) : (
-        <>
-          <p className="mt-2 text-[1rem] text-muted">Add your pharmacy and its phone number, so you can call about refills from here.</p>
-          <Button variant="glass" className="mt-3" onClick={onProfile} icon={<Plus className="size-5" aria-hidden />}>
-            Add your pharmacy
-          </Button>
-        </>
-      )}
-      {hasDoctor && (
-        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-divider pt-4">
-          <Stethoscope className="size-5 shrink-0 text-muted" aria-hidden />
-          <p className="min-w-0 flex-1">
-            <span className="block text-[0.9rem] text-muted">Your doctor</span>
-            <span className="block text-[1.05rem] font-bold">{profile.doctorName || 'Doctor'}</span>
-          </p>
-          {profile.doctorPhone && (
-            <CallButton phone={profile.doctorPhone} variant="glass" className="!w-auto">
-              Call
-            </CallButton>
-          )}
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function ScanButtons({ onScan }: { onScan: (kind: LabelKind) => void }) {
-  return (
-    <div className="space-y-2.5">
-      <Button onClick={() => onScan('bottle')} icon={<PillBottle className="size-6" aria-hidden />}>
-        Scan a bottle
-      </Button>
-      <Button variant="glass" onClick={() => onScan('box')} icon={<Package className="size-6" aria-hidden />}>
-        Scan a box
-      </Button>
-    </div>
+    <button type="button" onClick={onClick} className={`btn ${primary ? 'btn-primary' : 'btn-glass'} min-h-28 flex-col gap-1.5 rounded-[20px]`} aria-label={hint ? `${label} ${hint}` : undefined}>
+      {icon}
+      <span className="text-[1.25rem]">{label}</span>
+    </button>
   );
 }

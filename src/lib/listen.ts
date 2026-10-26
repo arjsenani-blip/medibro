@@ -109,7 +109,8 @@ function fakeSession(onPartial: (text: string) => void, onLevel: (level: number)
     const id = setInterval(() => {
       const t = (performance.now() - t0) / 1000;
       const syllables = Math.max(0, Math.sin(t * 9)) * (0.55 + 0.45 * Math.sin(t * 1.3));
-      onLevel(Math.max(0, Math.min(1, 0.15 + 0.8 * syllables)));
+      const fixed = (window as unknown as { __readrxFakeLevel?: number }).__readrxFakeLevel;
+      onLevel(fixed ?? Math.max(0, Math.min(1, 0.15 + 0.8 * syllables)));
       if (t > 0.8) onPartial('I have a headache');
     }, 40);
     stop = () => (clearInterval(id), onLevel(0), resolve(''));

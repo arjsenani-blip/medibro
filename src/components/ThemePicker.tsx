@@ -41,7 +41,7 @@ export default function ThemePicker({ value, onChange }: { value: string; onChan
         </label>
       </div>
       <p className="mt-3 text-[1rem] text-muted" aria-live="polite">
-        Chosen: <b className="text-ink-strong">{chosenName}</b>. It colors the background and buttons. Green, red and amber still mean match, no match and caution.
+        Chosen: <b className="text-ink-strong">{chosenName}</b>
       </p>
     </div>
   );

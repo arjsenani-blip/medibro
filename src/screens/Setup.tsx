@@ -2,8 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import type { Prefs, Profile } from '../lib/store';
 import ThemePicker from '../components/ThemePicker';
-import { HealthFields, NameField, PharmacyFields, ReadingFields } from '../components/ProfileFields';
-import { BottomBar, Button, Card, Spacer } from '../components/ui';
+import { AllergyField, BirthField, DoctorFields, LanguageField, NameField, PharmacyFields, SizeField } from '../components/ProfileFields';
+import { Button, Spacer } from '../components/ui';
 
 interface Props {
   profile: Profile;
@@ -15,20 +15,18 @@ interface Props {
   onDone: () => void;
 }
 
-/** First-launch setup, one short step at a time. Only the name is needed. */
+/** First-launch setup: one question per screen. Only the name is needed. */
 export default function Setup({ profile, prefs, onProfile, onPrefs, onLanguage, onBack, onDone }: Props) {
   const [step, setStep] = useState(0);
-  const steps: { title: string; intro: string; body: ReactNode; filled: boolean; required?: boolean }[] = [
-    { title: 'What’s your name?', intro: 'So ReadRx can greet you.', body: <NameField profile={profile} onChange={onProfile} autoFocus />, filled: !!profile.name.trim(), required: true },
-    { title: 'Your main pharmacy', intro: 'Where you pick up your medicines. You can call them about refills from ReadRx.', body: <PharmacyFields profile={profile} onChange={onProfile} />, filled: !!(profile.pharmacyName || profile.pharmacyPhone) },
-    {
-      title: 'About you',
-      intro: 'Handy when you call your pharmacy or doctor. All of this is optional.',
-      body: <HealthFields profile={profile} onChange={onProfile} />,
-      filled: !!(profile.birthDate || profile.doctorName || profile.doctorPhone || profile.allergies.length),
-    },
-    { title: 'Reading', intro: 'The language ReadRx reads your labels in, and how big the words are.', body: <ReadingFields prefs={prefs} onChange={onPrefs} onLanguage={onLanguage} />, filled: true },
-    { title: 'Pick a color', intro: 'Your favorite color for the background and buttons. You can change it later.', body: <ThemePicker value={prefs.accent} onChange={(accent) => onPrefs({ accent })} />, filled: true },
+  const steps: { title: string; note?: string; body: ReactNode; optional?: boolean; ready?: boolean }[] = [
+    { title: 'Your name', note: 'Everything you enter stays on this phone.', body: <NameField profile={profile} onChange={onProfile} autoFocus label="First name" />, ready: !!profile.name.trim() },
+    { title: 'Your pharmacy', body: <PharmacyFields profile={profile} onChange={onProfile} />, optional: true },
+    { title: 'Your doctor', body: <DoctorFields profile={profile} onChange={onProfile} />, optional: true },
+    { title: 'Birthday', body: <BirthField profile={profile} onChange={onProfile} />, optional: true },
+    { title: 'Allergies', body: <AllergyField profile={profile} onChange={onProfile} label="Medicines or foods" />, optional: true },
+    { title: 'Label language', body: <LanguageField prefs={prefs} onLanguage={onLanguage} /> },
+    { title: 'Text size', body: <SizeField prefs={prefs} onChange={onPrefs} /> },
+    { title: 'Pick a color', body: <ThemePicker value={prefs.accent} onChange={(accent) => onPrefs({ accent })} /> },
   ];
   const s = steps[step];
   const last = step === steps.length - 1;
@@ -36,36 +34,33 @@ export default function Setup({ profile, prefs, onProfile, onPrefs, onLanguage, 
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <div className="rise mt-2 flex items-center gap-3" key={`head-${step}`}>
-        <p className="flex-1 text-[1rem] font-bold text-ink-strong" aria-live="polite">
-          Step {step + 1} of {steps.length}
-        </p>
-        <div className="flex gap-1.5" aria-hidden>
+      <div className="mt-1 flex items-center gap-3">
+        <button type="button" onClick={() => (step ? setStep(step - 1) : onBack())} className="btn btn-quiet btn-icon -ml-1 rounded-full" aria-label="Back">
+          <ArrowLeft className="size-6" aria-hidden />
+        </button>
+        <div className="flex flex-1 justify-end gap-1.5" role="img" aria-label={`Step ${step + 1} of ${steps.length}`}>
           {steps.map((_, i) => (
-            <span key={i} className={`h-2.5 rounded-full transition-[width] ${i === step ? 'w-7 bg-accent-deep' : i < step ? 'w-2.5 bg-accent-deep' : 'w-2.5 bg-paper shadow-[inset_0_0_0_1px_var(--color-rule)]'}`} />
+            <span key={i} className={`h-2 rounded-full transition-[width] ${i === step ? 'w-6 bg-accent-deep' : i < step ? 'w-2 bg-accent-deep' : 'w-2 bg-[rgba(19,33,43,.18)]'}`} />
           ))}
         </div>
       </div>
-      <div key={step}>
-        <h1 className="headline rise mt-4 text-[1.9rem]">{s.title}</h1>
-        <p className="rise mt-1.5 text-[1.05rem] text-ink-strong" style={{ '--i': 1 } as React.CSSProperties}>
-          {s.intro}
-        </p>
-        <Card as="div" i={2} className="mt-5 p-4">
-          {s.body}
-        </Card>
+      <div key={step} className="rise mt-8">
+        <h1 className="headline text-[2.1rem]">{s.title}</h1>
+        {s.note && <p className="mt-2 text-[1.05rem] text-ink-strong">{s.note}</p>}
+        <div className="mt-6">{s.body}</div>
       </div>
 
       <Spacer />
-      <BottomBar>
-        <Button onClick={next} disabled={s.required && !s.filled} icon={last ? <Check className="size-6" aria-hidden /> : undefined} variant={s.filled ? 'primary' : 'glass'}>
-          {last ? 'Finish' : s.filled || s.required ? 'Next' : 'Skip for now'}
+      <div className="safe-bottom space-y-1 pt-6">
+        <Button onClick={next} disabled={s.ready === false} icon={last ? <Check className="size-6" aria-hidden /> : undefined} className="min-h-16 text-[1.2rem]">
+          {last ? 'Done' : 'Next'}
         </Button>
-        {s.required && !s.filled && <p className="text-center text-[1rem] text-ink-strong">Type your name to go on.</p>}
-        <Button variant="quiet" onClick={() => (step ? setStep(step - 1) : onBack())} icon={<ArrowLeft className="size-5" aria-hidden />}>
-          Back
-        </Button>
-      </BottomBar>
+        {s.optional && (
+          <button type="button" onClick={next} className="min-h-12 w-full text-[1.05rem] font-bold text-ink-strong">
+            Skip
+          </button>
+        )}
+      </div>
     </div>
   );
 }

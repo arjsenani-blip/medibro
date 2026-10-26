@@ -1,8 +1,8 @@
-import { Palette, Store, Type, UserRound, HeartPulse } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { Prefs, Profile } from '../lib/store';
 import ThemePicker from '../components/ThemePicker';
-import { HealthFields, NameField, PharmacyFields, ReadingFields } from '../components/ProfileFields';
-import { BottomBar, Button, Card, CardTitle, PageTitle, Spacer } from '../components/ui';
+import { AllergyField, BirthField, DoctorFields, LanguageField, NameField, PharmacyFields, SizeField } from '../components/ProfileFields';
+import { BottomBar, Button, Spacer } from '../components/ui';
 
 interface Props {
   profile: Profile;
@@ -13,57 +13,45 @@ interface Props {
   onDone: () => void;
 }
 
-/** Everything from setup, to change later. Changes are saved as you type. */
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="rise mt-8">
+      <h2 className="mb-3 text-[1.15rem] font-extrabold text-ink-strong">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+/** Everything from setup, to change later. Saved as you type, on this phone only. */
 export default function ProfileScreen({ profile, prefs, onProfile, onPrefs, onLanguage, onDone }: Props) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <PageTitle sub="Changes are saved on this phone as you make them. Nothing is uploaded.">Profile and settings</PageTitle>
+      <h1 className="headline rise mt-4 text-[2rem]">Settings</h1>
 
-      <Card i={1} className="mt-4 p-4" aria-labelledby="p-you">
-        <CardTitle id="p-you" icon={<UserRound className="size-5" aria-hidden />}>
-          You
-        </CardTitle>
-        <div className="mt-4">
+      <Section title="Reading">
+        <div className="space-y-3">
+          <LanguageField prefs={prefs} onLanguage={onLanguage} />
+          <SizeField prefs={prefs} onChange={onPrefs} />
+        </div>
+      </Section>
+      <Section title="Color">
+        <ThemePicker value={prefs.accent} onChange={(accent) => onPrefs({ accent })} />
+      </Section>
+      <Section title="You">
+        <div className="space-y-4">
           <NameField profile={profile} onChange={onProfile} />
+          <BirthField profile={profile} onChange={onProfile} />
+          <AllergyField profile={profile} onChange={onProfile} />
         </div>
-      </Card>
-
-      <Card i={2} className="mt-4 p-4" aria-labelledby="p-pharmacy">
-        <CardTitle id="p-pharmacy" icon={<Store className="size-5" aria-hidden />}>
-          Main pharmacy
-        </CardTitle>
-        <div className="mt-4">
+      </Section>
+      <Section title="Care">
+        <div className="space-y-4">
           <PharmacyFields profile={profile} onChange={onProfile} />
+          <DoctorFields profile={profile} onChange={onProfile} />
         </div>
-      </Card>
+      </Section>
 
-      <Card i={3} className="mt-4 p-4" aria-labelledby="p-health">
-        <CardTitle id="p-health" icon={<HeartPulse className="size-5" aria-hidden />}>
-          Health details
-        </CardTitle>
-        <div className="mt-4">
-          <HealthFields profile={profile} onChange={onProfile} />
-        </div>
-      </Card>
-
-      <Card i={4} className="mt-4 p-4" aria-labelledby="p-reading">
-        <CardTitle id="p-reading" icon={<Type className="size-5" aria-hidden />}>
-          Reading
-        </CardTitle>
-        <div className="mt-4">
-          <ReadingFields prefs={prefs} onChange={onPrefs} onLanguage={onLanguage} />
-        </div>
-      </Card>
-
-      <Card i={5} className="mt-4 p-4" aria-labelledby="p-color">
-        <CardTitle id="p-color" icon={<Palette className="size-5" aria-hidden />}>
-          Theme color
-        </CardTitle>
-        <div className="mt-4">
-          <ThemePicker value={prefs.accent} onChange={(accent) => onPrefs({ accent })} />
-        </div>
-      </Card>
-
+      <p className="mt-8 text-[1rem] text-ink-strong">Saved on this phone only.</p>
       <Spacer />
       <BottomBar>
         <Button onClick={onDone}>Done</Button>

@@ -93,16 +93,16 @@ body {
 .ambient::before {
   inset: -25%;
   background:
-    radial-gradient(38% 48% at 18% 22%, rgba(var(--mesh-1), 0.3), transparent 70%),
-    radial-gradient(34% 44% at 82% 26%, rgba(var(--mesh-2), 0.22), transparent 70%),
-    radial-gradient(44% 50% at 62% 86%, rgba(var(--mesh-3), 0.17), transparent 70%),
-    radial-gradient(30% 40% at 12% 88%, rgba(var(--mesh-4), 0.13), transparent 70%);
+    radial-gradient(38% 48% at 18% 22%, rgba(var(--mesh-1), 0.22), transparent 70%),
+    radial-gradient(34% 44% at 82% 26%, rgba(var(--mesh-2), 0.16), transparent 70%),
+    radial-gradient(44% 50% at 62% 86%, rgba(var(--mesh-3), 0.12), transparent 70%),
+    radial-gradient(30% 40% at 12% 88%, rgba(var(--mesh-4), 0.09), transparent 70%);
   animation: mesh-drift 32s ease-in-out infinite alternate;
   will-change: transform;
 }
 /* grain kept subtle (0.14, not Cooky's 0.22): grain behind text hurts low vision */
 .ambient::after {
-  inset: -60px; opacity: 0.14; mix-blend-mode: soft-light; background-size: 240px 240px;
+  inset: -60px; opacity: 0.11; mix-blend-mode: soft-light; background-size: 240px 240px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 /* hero (welcome): faster, livelier field and moving film grain */
@@ -274,23 +274,47 @@ body {
 /* At large text the header keeps the mark and drops the word, so the controls fit */
 html[data-size="large"] .wordmark { display: none; }
 
-/* ---- Listening waveform (src/components/Waveform.tsx) ----
-   Bars and halo are only shown while listening; they ease in and out on the spring. */
-.wave-halo {
-  opacity: 0;
-  background: radial-gradient(closest-side, rgba(var(--accent-rgb), 0.45), rgba(var(--accent-rgb), 0.12) 70%, transparent);
-  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.35), 0 0 30px 4px var(--glow);
-  transition: opacity 260ms ease-in;
+/* ---- The assistant orb (src/components/Orb.tsx) ----
+   Cooky's intro orb, tinted by the theme. Colors are painted once; the script
+   only moves them (transform) and fades the glow (opacity). */
+.orb-btn { -webkit-tap-highlight-color: transparent; cursor: pointer; }
+.orb-btn:focus-visible { outline-offset: 6px; }
+.orb-glow {
+  position: absolute; inset: -30%; border-radius: 999px; pointer-events: none; opacity: 0.45;
+  background: radial-gradient(closest-side, rgba(var(--accent-rgb), 0.7), rgba(var(--mesh-2), 0.32) 50%, transparent 100%);
+  will-change: transform, opacity;
 }
-.wave-bar {
-  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.95), rgba(var(--mesh-2), 0.85));
-  box-shadow: 0 0 8px -1px var(--glow);
-  transform: scaleY(0.08);
+.orb {
+  position: relative; display: block; width: 100%; height: 100%; border-radius: 999px; overflow: hidden; isolation: isolate;
+  background: radial-gradient(circle at 45% 40%, rgb(var(--accent-rgb)) 0%, rgb(var(--mesh-2)) 55%, #1c3577 100%);
+  box-shadow: 0 24px 60px -18px rgba(var(--accent-rgb), 0.75), 0 0 0 1px rgba(255, 255, 255, 0.45);
+  will-change: transform;
 }
-.wave-bars { opacity: 0; transform: translateY(-6px) scale(0.92); transition: opacity 260ms ease-in, transform 260ms ease-in; }
-.wave[data-on="true"] .wave-bars { opacity: 1; transform: none; transition: opacity 300ms ease-out, transform 600ms var(--spring); }
-.wave[data-on="false"] .wave-halo { opacity: 0 !important; }
+.orb-field { position: absolute; inset: -25%; border-radius: 999px; will-change: transform; }
+.orb-field-a {
+  background:
+    radial-gradient(36% 36% at 30% 32%, rgb(var(--accent-rgb)), transparent 70%),
+    radial-gradient(32% 32% at 72% 36%, rgba(var(--mesh-2), 0.9), transparent 70%),
+    radial-gradient(30% 30% at 46% 76%, rgba(var(--mesh-3), 0.55), transparent 70%),
+    radial-gradient(30% 30% at 70% 70%, rgba(255, 255, 255, 0.6), transparent 70%);
+}
+.orb-field-b {
+  opacity: 0.7;
+  background:
+    radial-gradient(30% 30% at 62% 26%, rgba(255, 255, 255, 0.75), transparent 70%),
+    radial-gradient(34% 34% at 26% 66%, rgba(var(--accent-rgb), 0.9), transparent 70%),
+    radial-gradient(30% 30% at 76% 60%, rgba(220, 250, 255, 0.7), transparent 70%);
+}
+.orb-sheen {
+  position: absolute; inset: 0; border-radius: 999px;
+  background: radial-gradient(42% 34% at 32% 24%, rgba(255, 255, 255, 0.62), transparent 70%), radial-gradient(60% 30% at 50% 100%, rgba(255, 255, 255, 0.18), transparent 70%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), inset 0 0 40px rgba(255, 255, 255, 0.15);
+}
+.orb-shimmer { position: absolute; inset: 0; opacity: 0; background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%); transform: translateX(-100%); }
+@media (prefers-reduced-motion: no-preference) {
+  .orb-btn[data-state="thinking"] .orb-shimmer { animation: shimmer 1.4s ease-in-out infinite; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .wave-bars { display: none; }
-  .wave-halo { transition: none; }
+  .orb-btn[data-state="thinking"] .orb-shimmer { opacity: 0.25; transform: none; }
 }
+@keyframes shimmer { 0% { opacity: 0; transform: translateX(-100%); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateX(100%); } }

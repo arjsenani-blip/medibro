@@ -18,19 +18,15 @@ const GUIDE: Record<LabelKind, { title: string; intro: string; min: number; step
     title: 'Scan a bottle',
     intro: 'The label wraps around the bottle, so take at least 3 photos as you turn it. ReadRx puts them together.',
     min: 3,
-    steps: [
-      'Start with the medicine name facing you. Fill the photo with the label.',
-      'Turn the bottle a little, about a quarter turn, so the next part of the label faces you. Keep a few words from the last photo in view.',
-      'Turn it a little more and photograph the next part.',
-    ],
-    more: 'Keep turning until you’ve photographed the whole label, or read it now.',
+    steps: ['Medicine name facing you. Fill the photo with the label.', 'Turn the bottle a quarter turn. Keep a few words from the last photo in view.', 'Turn it a little more.'],
+    more: 'Add more photos, or read it now.',
   },
   box: {
     title: 'Scan a box',
     intro: 'For medicines that come in a box, like dissolving tablets. Take a photo of the pharmacy sticker and of the box itself.',
     min: 2,
-    steps: ['The pharmacy sticker, with your name and the directions.', 'The front of the box, with the medicine name and strength.'],
-    more: 'If you like, add other sides of the box. They can help with the strength and the maker.',
+    steps: ['The pharmacy sticker.', 'The front of the box.'],
+    more: 'Add other sides, or read it now.',
   },
 };
 
@@ -46,7 +42,7 @@ export default function Capture({ kind, files, onChange, onRead, onCancel }: Pro
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <PageTitle sub={g.intro}>{g.title}</PageTitle>
+      <PageTitle>{g.title}</PageTitle>
 
       {files.length < MAX && (
         <Card as="div" i={1} key={files.length} className="mt-4 p-4" aria-live="polite">
@@ -90,10 +86,10 @@ export default function Capture({ kind, files, onChange, onRead, onCancel }: Pro
       <BottomBar>
         {enough ? (
           <>
-            <Button onClick={onRead}>Read the label ({files.length} photos)</Button>
+            <Button onClick={onRead}>Read it ({files.length} photos)</Button>
             {files.length < MAX && (
               <PhotoButton capture variant="glass" onFile={add} icon={<Camera className="size-5" aria-hidden />}>
-                Take another photo
+                Another photo
               </PhotoButton>
             )}
           </>

@@ -26,7 +26,7 @@ export const INK_STRONG: RGB = [8, 19, 26]; // #08131a, headings and any text ri
 export const MUTED: RGB = [62, 79, 90]; // #3e4f5a
 
 /** How strong the frame's four mesh blobs are (accent first). */
-export const MESH_ALPHA = [0.3, 0.22, 0.17, 0.13];
+export const MESH_ALPHA = [0.22, 0.16, 0.12, 0.09];
 /** Hue offsets of the other three blobs: neighbors of the accent, so every color
     gets a field in its own family (cyan: blue, indigo and teal). */
 const MESH_HUES = [0, 30, 62, -32];

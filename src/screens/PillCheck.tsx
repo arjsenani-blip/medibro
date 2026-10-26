@@ -119,7 +119,7 @@ export default function PillCheck({ med }: { med: Medicine }) {
       {/* 1. What it should look like */}
       <Card i={1} className="mt-4 p-4" aria-labelledby="should">
         <h2 id="should" className="headline text-[1.2rem]">
-          It should look like
+          Should look like
         </h2>
         {fda.status === 'loading' && (
           <p className="mt-2 flex items-center gap-2 text-[1rem] text-muted">
@@ -128,7 +128,7 @@ export default function PillCheck({ med }: { med: Medicine }) {
         )}
         {expected.length > 0 && (
           <>
-            {expected.length > 1 && <p className="mt-1 text-[1rem] text-muted">This medicine looks different depending on who made it. Yours should match one of these.</p>}
+            {expected.length > 1 && <p className="mt-1 text-[1rem] text-muted">Yours should match one of these.</p>}
             <ul className="mt-2 divide-y divide-divider">
               {expected.map((a, i) => (
                 <li key={i} className="py-2.5">
@@ -166,13 +166,13 @@ export default function PillCheck({ med }: { med: Medicine }) {
       {/* 2. Photo of the pill */}
       <Card i={2} className="mt-4 p-4" aria-labelledby="photo">
         <h2 id="photo" className="headline text-[1.2rem]">
-          Take a photo of one pill
+          Photo of one pill
         </h2>
-        <p className="mt-1 text-[1rem] text-muted">Put it on a plain, dark surface. Hold the phone straight above it, in daylight if you can.</p>
+        <p className="mt-1 text-[1rem] text-muted">On a plain, dark surface. Phone straight above.</p>
         {photo && <img src={photo} alt="Your photo of the pill" className="mt-3 h-44 w-full rounded-[14px] bg-ink-strong object-contain" />}
         <div className="mt-3">
           <PhotoButton capture variant={reading ? 'glass' : 'primary'} onFile={onPhoto} icon={busy ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : <Camera className="size-5" aria-hidden />}>
-            {reading ? 'Take another photo' : 'Take photo of pill'}
+            {reading ? 'Retake' : 'Take photo'}
           </PhotoButton>
         </div>
         {typeof reading === 'string' && (
@@ -207,7 +207,7 @@ export default function PillCheck({ med }: { med: Medicine }) {
           {best && imprints.length > 0 && best.color !== 'mismatch' && best.shape !== 'mismatch' && (
             <div className="border-t border-divider px-4 py-3">
               <p className="text-[1.05rem] font-bold text-ink-strong">Look closely at the pill. What is stamped on it?</p>
-              <p className="text-[0.95rem] text-muted">Check both sides. A camera can’t read stamps reliably, so this step is yours.</p>
+              <p className="text-[0.95rem] text-muted">Check both sides.</p>
               <div className="mt-2.5 grid gap-2">
                 {imprints.map((im) => (
                   <button
@@ -273,7 +273,7 @@ export default function PillCheck({ med }: { med: Medicine }) {
         </section>
       )}
 
-      <p className="mt-6 text-[0.95rem] text-ink-strong">ReadRx is a reading aid, not a pharmacist. It can be wrong. When in doubt, don’t take the pill and call your pharmacy.</p>
+      <p className="mt-6 text-[0.95rem] text-ink-strong">A reading aid, not a pharmacist. When in doubt, call your pharmacy.</p>
     </div>
   );
 }

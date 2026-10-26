@@ -9,7 +9,6 @@ export default function LanguageSheet({ value, onPick, onClose }: { value: Lang;
         <h2 id="lang-title" className="headline text-[1.4rem]">
           Read labels in
         </h2>
-        <p className="mt-1 text-[1rem] text-muted">Directions and warnings are rewritten in this language and read aloud.</p>
         <ul className="mt-4 space-y-2" role="radiogroup" aria-labelledby="lang-title">
           {LANGUAGES.map((l) => {
             const on = value === l.code;

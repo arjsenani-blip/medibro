@@ -42,13 +42,13 @@ export default function Review({ fields, raw, lang, onSave, onAddPhoto, onCancel
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <PageTitle sub="Compare with the bottle and fix anything that’s wrong. Cameras misread curved labels.">Check what ReadRx read</PageTitle>
+      <PageTitle sub="Fix anything that’s wrong.">Check the label</PageTitle>
 
       {missing.length > 0 && (
         <p className="rise mt-3 flex gap-2.5 rounded-[14px] bg-amber-wash p-3.5 text-[1rem] text-amber shadow-[inset_0_0_0_1px_rgba(125,60,6,.45)]">
           <TriangleAlert className="mt-0.5 size-5 shrink-0" aria-hidden />
           <span className="font-bold">
-            Couldn’t find the {missing.join(' or ')}. Type {missing.length > 1 ? 'them' : 'it'} from the label, or add another photo of that side of the bottle.
+            Couldn’t find the {missing.join(' or ')}. Type {missing.length > 1 ? 'them' : 'it'} in, or add a photo.
           </span>
         </p>
       )}
@@ -78,8 +78,8 @@ export default function Review({ fields, raw, lang, onSave, onAddPhoto, onCancel
               </>
             ) : (
               <p className="text-[1rem] text-stop">
-                <b>ReadRx won’t rewrite these directions</b> because it doesn’t understand every word
-                {preview.unknown.length ? ` (${preview.unknown.filter((u) => !u.startsWith('(')).slice(0, 4).join(', ') || preview.unknown[0]})` : ''}. They’ll be read exactly as printed. If they look garbled, correct them above.
+                <b>These will be read exactly as printed</b>: some words weren’t understood
+                {preview.unknown.length ? ` (${preview.unknown.filter((u) => !u.startsWith('(')).slice(0, 4).join(', ') || preview.unknown[0]})` : ''}.
               </p>
             )}
           </div>
@@ -90,7 +90,7 @@ export default function Review({ fields, raw, lang, onSave, onAddPhoto, onCancel
       <div className="mt-4 space-y-3">
         <details className="card-sm group rise" style={{ '--i': 2 } as React.CSSProperties}>
           <summary className="flex min-h-14 cursor-pointer list-none items-center px-4 text-[1.05rem] font-bold text-ink-strong">
-            <span className="flex-1">More details from the label</span>
+            <span className="flex-1">More details</span>
             <span className="text-accent-deep transition-transform group-open:rotate-90" aria-hidden>›</span>
           </summary>
           <div className="space-y-4 border-t border-divider px-4 pt-3 pb-4">
@@ -104,7 +104,7 @@ export default function Review({ fields, raw, lang, onSave, onAddPhoto, onCancel
 
         <details className="card-sm group rise" style={{ '--i': 3 } as React.CSSProperties}>
           <summary className="flex min-h-14 cursor-pointer list-none items-center px-4 text-[1.05rem] font-bold text-ink-strong">
-            <span className="flex-1">Text the camera read</span>
+            <span className="flex-1">Camera text</span>
             <span className="text-accent-deep transition-transform group-open:rotate-90" aria-hidden>›</span>
           </summary>
           <pre className="border-t border-divider px-4 py-3 font-sans text-[0.95rem] whitespace-pre-wrap text-muted">{raw}</pre>
@@ -114,7 +114,7 @@ export default function Review({ fields, raw, lang, onSave, onAddPhoto, onCancel
       <Spacer />
       <BottomBar>
         <Button onClick={() => onSave(f)} disabled={!f.drug && !f.directions}>
-          Save medicine
+          Save
         </Button>
         <div className="grid grid-cols-2 gap-2">
           <PhotoButton capture variant="glass" onFile={onAddPhoto}>
