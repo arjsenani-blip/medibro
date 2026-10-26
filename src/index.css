@@ -273,3 +273,24 @@ body {
 
 /* At large text the header keeps the mark and drops the word, so the controls fit */
 html[data-size="large"] .wordmark { display: none; }
+
+/* ---- Listening waveform (src/components/Waveform.tsx) ----
+   Bars and halo are only shown while listening; they ease in and out on the spring. */
+.wave-halo {
+  opacity: 0;
+  background: radial-gradient(closest-side, rgba(var(--accent-rgb), 0.45), rgba(var(--accent-rgb), 0.12) 70%, transparent);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.35), 0 0 30px 4px var(--glow);
+  transition: opacity 260ms ease-in;
+}
+.wave-bar {
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.95), rgba(var(--mesh-2), 0.85));
+  box-shadow: 0 0 8px -1px var(--glow);
+  transform: scaleY(0.08);
+}
+.wave-bars { opacity: 0; transform: translateY(-6px) scale(0.92); transition: opacity 260ms ease-in, transform 260ms ease-in; }
+.wave[data-on="true"] .wave-bars { opacity: 1; transform: none; transition: opacity 300ms ease-out, transform 600ms var(--spring); }
+.wave[data-on="false"] .wave-halo { opacity: 0 !important; }
+@media (prefers-reduced-motion: reduce) {
+  .wave-bars { display: none; }
+  .wave-halo { transition: none; }
+}

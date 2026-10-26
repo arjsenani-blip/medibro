@@ -7,6 +7,7 @@ import { LABEL_REMINDER } from '../lib/otc/otc-data';
 import { canListen, listen, listensOnDevice, type Session } from '../lib/listen';
 import { canSpeak, speakLines, stopSpeaking } from '../lib/speech';
 import { Button, CallButton, Card, PageTitle, buttonClass } from '../components/ui';
+import Waveform from '../components/Waveform';
 
 interface Props {
   profile: Profile;
@@ -29,6 +30,7 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
   const [speaking, setSpeaking] = useState(false);
   const session = useRef<Session | null>(null);
   const answerRef = useRef<HTMLDivElement>(null);
+  const level = useRef(0); // raw mic level, 0–1, read by the waveform each frame
 
   const ctx = useMemo(() => ({ allergies: profile.allergies, medicines: meds.map(medicineText), age: ageFrom(profile.birthDate) }), [profile, meds]);
   const result: Answer | null = asked ? answerFor(asked, ctx) : null;
@@ -50,13 +52,17 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
     setMicError('');
     setHeard('');
     stopSpeaking();
-    const s = listen('en-US', setHeard);
+    level.current = 0;
+    const s = listen('en-US', setHeard, (v) => (level.current = v));
     session.current = s;
     setListening(true);
     s.done
       .then((text) => text.trim() && ask(text))
       .catch((e: Error) => setMicError(e.message))
-      .finally(() => setListening(false));
+      .finally(() => {
+        level.current = 0;
+        setListening(false);
+      });
   };
 
   const readAloud = () => {
@@ -83,16 +89,17 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
       <Card i={2} className="mt-4 p-4">
         {canListen && (
           <div className="flex flex-col items-center pt-1 pb-3">
-            <button
-              type="button"
-              onClick={toggleMic}
-              aria-pressed={listening}
-              aria-label={listening ? 'Stop listening' : 'Ask with your voice'}
-              className={`btn relative size-24 rounded-full p-0 ${listening ? '' : 'btn-primary'}`}
-            >
-              {listening && <span className="pulse absolute inset-0 rounded-full shadow-[0_0_0_6px_rgba(var(--accent-rgb),.35)]" aria-hidden />}
-              {listening ? <MicOff className="size-10" aria-hidden /> : <Mic className="size-10" aria-hidden />}
-            </button>
+            <Waveform active={listening} level={level}>
+              <button
+                type="button"
+                onClick={toggleMic}
+                aria-pressed={listening}
+                aria-label={listening ? 'Stop listening' : 'Ask with your voice'}
+                className={`btn relative size-24 rounded-full p-0 ${listening ? '' : 'btn-primary'}`}
+              >
+                {listening ? <MicOff className="size-10" aria-hidden /> : <Mic className="size-10" aria-hidden />}
+              </button>
+            </Waveform>
             <p className="mt-2.5 text-[1.05rem] font-bold text-ink-strong" aria-live="polite">
               {listening ? 'Listening… tap to stop' : 'Tap to ask out loud'}
             </p>

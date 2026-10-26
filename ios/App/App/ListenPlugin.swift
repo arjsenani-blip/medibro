@@ -5,7 +5,8 @@ import AVFoundation
 
 /// Hears a spoken question with Apple's speech recognizer, on the phone only
 /// (requiresOnDeviceRecognition: nothing is sent to Apple's servers). Exposed to
-/// the web code as `Listen` (see src/lib/listen.ts).
+/// the web code as `Listen` (see src/lib/listen.ts). While listening it also sends the
+/// microphone level, 0–1, as "level" events about 25 times a second for the waveform.
 @objc(ListenPlugin)
 public class ListenPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "ListenPlugin"
@@ -21,6 +22,7 @@ public class ListenPlugin: CAPPlugin, CAPBridgedPlugin {
     private var task: SFSpeechRecognitionTask?
     private var finish: CAPPluginCall?
     private var latest = ""
+    private var lastLevel = Date.distantPast
 
     private func recognizer(_ lang: String) -> SFSpeechRecognizer? {
         SFSpeechRecognizer(locale: Locale(identifier: lang)) ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
@@ -65,7 +67,10 @@ public class ListenPlugin: CAPPlugin, CAPBridgedPlugin {
             try s.setCategory(.playAndRecord, mode: .measurement, options: [.duckOthers, .defaultToSpeaker])
             try s.setActive(true, options: .notifyOthersOnDeactivation)
             let input = engine.inputNode
-            input.installTap(onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0)) { buffer, _ in req.append(buffer) }
+            input.installTap(onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0)) { [weak self] buffer, _ in
+                req.append(buffer)
+                self?.sendLevel(buffer)
+            }
             engine.prepare()
             try engine.start()
         } catch {
@@ -82,6 +87,21 @@ public class ListenPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             if error != nil || (result?.isFinal ?? false) { DispatchQueue.main.async { self.end() } }
         }
+    }
+
+    /// RMS of this buffer in dB, -50…0 dB mapped to 0–1 (same scale as src/lib/level.ts).
+    private func sendLevel(_ buffer: AVAudioPCMBuffer) {
+        let now = Date()
+        guard now.timeIntervalSince(lastLevel) >= 0.04, let data = buffer.floatChannelData?[0] else { return }
+        lastLevel = now
+        let n = Int(buffer.frameLength)
+        guard n > 0 else { return }
+        var sum: Float = 0
+        for i in 0..<n { sum += data[i] * data[i] }
+        let rms = sqrt(sum / Float(n))
+        let db = rms > 0 ? 20 * log10(rms) : -160
+        let level = max(0, min(1, (db + 50) / 50))
+        notifyListeners("level", data: ["value": level])
     }
 
     @objc func stop(_ call: CAPPluginCall) {
