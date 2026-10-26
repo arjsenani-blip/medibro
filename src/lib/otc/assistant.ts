@@ -293,3 +293,38 @@ export function spokenAnswer(a: Answer): string[] {
 }
 
 export { INGREDIENTS };
+
+export const SHORT_DISCLAIMER = 'Follow the package label. This isn’t medical advice.';
+
+/** What's said out loud automatically: short. The full answer stays on screen.
+    Emergencies lead with the emergency line; disposal is the steps and the call question. */
+export function shortSpoken(a: Answer): string[] {
+  switch (a.kind) {
+    case 'emergency':
+      return [...a.flags.flatMap((f) => [f.message, f.title + '.']), 'Please call now.'];
+    case 'dispose':
+      return spokenDisposal(a.saved);
+    case 'rx':
+      return ['I only cover over-the-counter medicines for symptoms. Please ask your pharmacist or doctor.', SHORT_DISCLAIMER];
+    case 'disease':
+      return ['I can’t help treat a disease. I only suggest over-the-counter medicines for everyday symptoms. Please ask your doctor.', SHORT_DISCLAIMER];
+    case 'none':
+      return ['I didn’t recognize a symptom. Try a few words, like headache or runny nose.'];
+    case 'suggest': {
+      const lines: string[] = [];
+      const top = a.suggestions.slice(0, 2);
+      const what = a.symptoms.map((s) => s.label.toLowerCase()).join(' and ');
+      if (!top.length) lines.push(`For ${what}, please ask your pharmacist.`);
+      top.forEach((s, i) => {
+        const ing = s.ingredient;
+        const brand = ing.brands[0] ? `, like ${ing.brands[0].replace(/\s*\(.*\)/, '')}` : '';
+        lines.push(i === 0 ? `For ${what}, you could try ${ing.name.toLowerCase()}${brand}.` : `Or ${ing.name.toLowerCase()}${brand}.`);
+        // the person's own warning matters most; otherwise the first caution
+        lines.push(s.warnings[0]?.text ?? ing.cautions[0]);
+      });
+      if (a.leftOut.length) lines.push('I left out some because of your allergies.');
+      lines.push(SHORT_DISCLAIMER);
+      return lines;
+    }
+  }
+}

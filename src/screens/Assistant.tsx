@@ -3,7 +3,8 @@ import { Capacitor } from '@capacitor/core';
 import { ChevronDown, CircleAlert, Info, Keyboard, MapPin, OctagonX, Phone, Search, Shield, Square, Store, TriangleAlert, Volume2 } from 'lucide-react';
 import type { Medicine, Profile } from '../lib/store';
 import { acceptOtcConsent, hasOtcConsent, telHref } from '../lib/store';
-import { DISEASE_REPLY, NONE_REPLY, RX_REPLY, ageFrom, answer as answerFor, medicineText, spokenAnswer, type Answer, type Suggestion } from '../lib/otc/assistant';
+import { DISEASE_REPLY, NONE_REPLY, RX_REPLY, ageFrom, answer as answerFor, medicineText, shortSpoken, spokenAnswer, type Answer, type Suggestion } from '../lib/otc/assistant';
+import { IDLE, TIMING, step, type Effect, type Event, type Phase, type Turn } from '../lib/voiceTurn';
 import { canListen, listen, listensOnDevice, type Session } from '../lib/listen';
 import { canSpeak, speakLines, stopSpeaking } from '../lib/speech';
 import { plainLabel } from '../lib/plain';
@@ -28,111 +29,157 @@ const CHIPS: [string, string][] = [
 ];
 const CARD_NOTE = 'Not medical advice. Follow the package label.';
 
-/** Ask about a symptom: OTC suggestions from ReadRx's own offline list. */
+/** Ask about a symptom: OTC suggestions from MediBro's own offline list.
+    One tap to talk; it hears when you've finished, answers on screen and out loud
+    (src/lib/voiceTurn.ts runs the turn). */
 export default function Assistant({ profile, meds, rate, onLeave, onProfile }: Props) {
   const [consented, setConsented] = useState(hasOtcConsent);
   const [query, setQuery] = useState('');
   const [asked, setAsked] = useState('');
   const [heard, setHeard] = useState('');
-  const [listening, setListening] = useState(false);
-  const [thinking, setThinking] = useState(false);
   const [typing, setTyping] = useState(!canListen);
   const [info, setInfo] = useState(false);
   const [micError, setMicError] = useState('');
-  const [speaking, setSpeaking] = useState(false);
+  const [confirmMaps, setConfirmMaps] = useState(false);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [followUp, setFollowUp] = useState(false);
+  const turn = useRef<Turn>(IDLE);
   const session = useRef<Session | null>(null);
+  const stopped = useRef<Promise<unknown>>(Promise.resolve()); // resolves once the microphone is fully off
   const level = useRef(0); // raw mic level, 0–1, read by the orb each frame
   const answerRef = useRef<HTMLDivElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const viaVoice = useRef(false); // the last question was spoken, so the answer is read aloud
-  const [followUp, setFollowUpState] = useState(false); // waiting for yes/no to “call your police station?”
-  const followUpRef = useRef(false); // the same, for callbacks started in an earlier render
-  const setFollowUp = (v: boolean) => ((followUpRef.current = v), setFollowUpState(v));
-  const [confirmMaps, setConfirmMaps] = useState(false);
   const actions = useMemo(() => disposalActions(profile, Capacitor.isNativePlatform()), [profile]);
 
   const ctx = useMemo(() => ({ allergies: profile.allergies, medicines: meds.map(medicineText), names: meds.map((m) => plainLabel(m.fields, m.raw, 'en').name), age: ageFrom(profile.birthDate) }), [profile, meds]);
   const result: Answer | null = asked ? answerFor(asked, ctx) : null;
 
-  useEffect(() => () => (session.current?.stop(), stopSpeaking(), clearTimeout(timer.current)), []);
-  useEffect(() => {
-    if (asked) answerRef.current?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
-  }, [asked]);
+  // the latest versions, for effects that run after an await
+  const latest = useRef({ ctx, actions, rate });
+  latest.current = { ctx, actions, rate };
 
-  const say = (lines: string[], then?: () => void) => {
-    setSpeaking(true);
-    speakLines(lines.map((text) => ({ text, lang: 'en' as const })), rate, (i) => i === null && (setSpeaking(false), then?.()));
+  const dispatch = (e: Event) => {
+    const r = step(turn.current, e);
+    turn.current = r.turn;
+    setPhase(r.turn.phase);
+    setFollowUp(r.turn.followUp);
+    r.effects.forEach(runEffect);
   };
+  const now = () => performance.now();
 
-  // the reply to "Do you want to call your police station?"
-  const answerFollowUp = (q: string): boolean => {
-    const yn = yesNo(q);
-    if (!yn) return false;
-    setFollowUp(false);
-    if (yn === 'no') return say(['Okay.']), true;
-    const police = actions.find((a) => a.id === 'police');
-    if (police) window.location.href = police.href; // iOS still asks before calling
-    else (setConfirmMaps(true), say(['I don’t have their number yet. Tap Find nearby police to search the map.']));
-    return true;
-  };
-
-  const ask = (q: string) => {
-    if (!q.trim()) return;
-    if (followUpRef.current && answerFollowUp(q)) return;
-    setFollowUp(false);
-    setConfirmMaps(false);
-    stopSpeaking();
-    setSpeaking(false);
-    setQuery(q);
-    setAsked('');
-    setThinking(true);
-    clearTimeout(timer.current);
-    // a short beat so the orb shows it's working; the answer itself is instant
-    timer.current = setTimeout(() => {
-      setThinking(false);
-      setAsked(q.trim());
-      const a = answerFor(q.trim(), ctx);
-      // disposal answers are read aloud when asked by voice, then ask about calling
-      if (a.kind === 'dispose' && viaVoice.current && canSpeak) say(spokenAnswer(a), () => (setFollowUp(true), canListen && setTimeout(startListening, 300)));
-    }, 450);
-  };
-
-  const toggleMic = () => {
-    if (!canListen) return setTyping(true);
-    if (listening) return session.current?.stop();
-    startListening();
-  };
-
-  function startListening() {
-    setMicError('');
-    setHeard('');
-    stopSpeaking();
-    level.current = 0;
-    const s = listen('en-US', setHeard, (v) => (level.current = v));
-    session.current = s;
-    setListening(true);
-    s.done
-      .then((text) => {
-        viaVoice.current = true;
-        if (text.trim()) ask(text);
-      })
-      .catch((e: Error) => (setMicError(e.message), setTyping(true)))
-      .finally(() => {
+  function runEffect(fx: Effect) {
+    switch (fx.type) {
+      case 'listen': {
+        stopSpeaking();
+        setMicError('');
+        setHeard('');
         level.current = 0;
-        setListening(false);
-      });
+        const s = listen(
+          'en-US',
+          (text) => (setHeard(text), dispatch({ type: 'partial', text, at: now() })),
+          (v) => {
+            level.current = v;
+            // only matters once words have been heard; doesn't re-render
+            if (v >= TIMING.quietLevel && turn.current.heard) turn.current = step(turn.current, { type: 'level', value: v, at: now() }).turn;
+          },
+        );
+        session.current = s;
+        stopped.current = s.done.catch(() => '');
+        s.done.then(
+          (text) => session.current === s && dispatch({ type: 'heard', text, at: now() }),
+          (err: Error) => {
+            if (session.current !== s) return;
+            setMicError(err.message);
+            setTyping(true);
+            dispatch({ type: 'error', message: err.message });
+          },
+        );
+        break;
+      }
+      case 'endListening':
+        session.current?.stop();
+        break;
+      case 'cancelListening':
+        session.current?.stop();
+        session.current = null; // its words are dropped
+        level.current = 0;
+        break;
+      case 'think':
+        setTimeout(() => answerQuestion(fx.text, fx.followUp), TIMING.thinkMs);
+        break;
+      case 'speak':
+        void speakAfterMic(fx.lines);
+        break;
+      case 'stopSpeaking':
+        stopSpeaking();
+        break;
+    }
   }
 
+  // never talk while the microphone is still on: it would hear itself
+  async function speakAfterMic(lines: string[]) {
+    await stopped.current;
+    level.current = 0;
+    if (!canSpeak) return dispatch({ type: 'spoken', at: now() });
+    const mine = turn.current;
+    speakLines(lines.map((text) => ({ text, lang: 'en' as const })), latest.current.rate, (i) => i === null && turn.current === mine && dispatch({ type: 'spoken', at: now() }));
+  }
+
+  function answerQuestion(text: string, isFollowUp: boolean) {
+    setConfirmMaps(false);
+    // the reply to "Do you want to call your police station?"
+    if (isFollowUp) {
+      const yn = yesNo(text);
+      if (yn === 'no') return dispatch({ type: 'answered', lines: ['Okay.'], askAgain: false });
+      if (yn === 'yes') {
+        const police = latest.current.actions.find((a) => a.id === 'police');
+        if (police) {
+          window.location.href = police.href; // iOS still asks before calling
+          return dispatch({ type: 'answered', lines: ['Calling your police station.'], askAgain: false });
+        }
+        setConfirmMaps(true);
+        return dispatch({ type: 'answered', lines: ['I don’t have their number yet. Tap Find nearby police to search the map.'], askAgain: false });
+      }
+    }
+    setQuery(text);
+    setAsked(text);
+    const a = answerFor(text, latest.current.ctx);
+    dispatch({ type: 'answered', lines: shortSpoken(a), askAgain: a.kind === 'dispose' && canListen });
+  }
+
+  const ask = (q: string) => dispatch({ type: 'typed', text: q });
+  const tapOrb = () => (canListen ? dispatch({ type: 'tap', at: now() }) : setTyping(true));
+
+  // the clock for silence and timeouts, only while listening
+  useEffect(() => {
+    if (phase !== 'listening' && phase !== 'ending') return;
+    const id = setInterval(() => dispatch({ type: 'tick', at: now() }), 100);
+    return () => clearInterval(id);
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(
+    () => () => {
+      session.current?.stop();
+      stopSpeaking();
+    },
+    [],
+  );
+  // no auto-scroll: the orb stays in view so a tap can stop the speech; the answer appears under it
+
+  const speaking = phase === 'speaking';
   const readAloud = () => {
     if (!result) return;
-    if (speaking) return (stopSpeaking(), setSpeaking(false));
-    say(spokenAnswer(result), () => result.kind === 'dispose' && setFollowUp(true));
+    if (speaking) return dispatch({ type: 'tap', at: now() });
+    if (phase !== 'idle') return; // never over an open microphone
+    // reading the full answer again: same path, so the orb and the tap-to-stop work
+    turn.current = { ...turn.current, phase: 'thinking', followUp: false };
+    dispatch({ type: 'answered', lines: spokenAnswer(result), askAgain: false });
   };
 
   if (!consented) return <Consent onAccept={() => (acceptOtcConsent(), setConsented(true))} onDecline={onLeave} />;
 
-  const orbState: OrbState = listening ? 'listening' : thinking || speaking ? 'thinking' : 'idle';
-  const status = listening ? (followUp ? 'Say yes or no' : 'Listening… tap to stop') : thinking ? 'Thinking…' : followUp ? 'Call your police station? Tap and say yes or no' : canListen ? 'Tap to talk' : 'Type your question';
+  const orbState: OrbState = phase === 'listening' || phase === 'ending' ? 'listening' : phase === 'thinking' ? 'thinking' : speaking ? 'speaking' : 'idle';
+  const status = { idle: canListen ? 'Tap to talk' : 'Type your question', listening: followUp ? 'Listening… yes or no?' : 'Listening…', ending: 'Listening…', thinking: 'Thinking…', speaking: 'Speaking… tap to stop' }[phase];
+  const orbLabel = { idle: 'Start listening', listening: 'Listening. Tap to finish', ending: 'Finishing', thinking: 'Thinking', speaking: 'Stop speaking' }[phase];
 
   return (
     <div className="flex min-h-full flex-1 flex-col pb-8">
@@ -147,9 +194,9 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
         </span>
       </p>
 
-      <div className="rise mt-8 flex flex-col items-center" style={{ '--i': 1 } as React.CSSProperties}>
-        <Orb state={orbState} level={level} label={listening ? 'Stop listening' : 'Start listening'} onPress={toggleMic} />
-        <p className="mt-6 text-[1.2rem] font-bold text-ink-strong" aria-live="polite">
+      <div className="rise mt-3 flex flex-col items-center" style={{ '--i': 1 } as React.CSSProperties}>
+        <Orb state={orbState} level={level} label={orbLabel} onPress={tapOrb} />
+        <p className="mt-1 text-[1.2rem] font-bold text-ink-strong" aria-live="polite">
           {status}
         </p>
         {heard && <p className="mt-1 max-w-[26ch] text-center text-[1.1rem] text-ink">“{heard}”</p>}
@@ -179,7 +226,6 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
           <form
             onSubmit={(e: FormEvent) => {
               e.preventDefault();
-              viaVoice.current = false;
               ask(query);
             }}
             className="flex gap-2"
@@ -194,7 +240,7 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
           </form>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
             {CHIPS.map(([label, q]) => (
-              <button key={label} type="button" onClick={() => ((viaVoice.current = false), ask(q))} className="btn btn-quiet min-h-12 rounded-full px-4 text-[1rem] font-semibold">
+              <button key={label} type="button" onClick={() => ask(q)} className="btn btn-quiet min-h-12 rounded-full px-4 text-[1rem] font-semibold">
                 {label}
               </button>
             ))}

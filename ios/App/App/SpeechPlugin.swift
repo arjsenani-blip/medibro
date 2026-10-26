@@ -84,6 +84,7 @@ public class SpeechPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDeleg
     /// Play as spoken audio: ignores the silent switch and lowers music while talking.
     private func activateAudio() {
         let s = AVAudioSession.sharedInstance()
+        // playback, so it comes out of the loudspeaker even right after the microphone was on
         try? s.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
         try? s.setActive(true)
     }
@@ -92,7 +93,8 @@ public class SpeechPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDeleg
     private func scheduleRelease() {
         release?.cancel()
         let item = DispatchWorkItem { [weak self] in
-            guard let self, !self.synth.isSpeaking, self.pending.isEmpty else { return }
+            // not while the microphone has the session (ListenPlugin), or it would cut it off
+            guard let self, !self.synth.isSpeaking, self.pending.isEmpty, !ListenPlugin.active else { return }
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
         release = item

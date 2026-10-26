@@ -104,16 +104,19 @@ async function webMeter(onLevel: (level: number) => void): Promise<() => void> {
 /** Development only: a pretend microphone that "speaks" in bursts, for screenshots. */
 function fakeSession(onPartial: (text: string) => void, onLevel: (level: number) => void): Session {
   const t0 = performance.now();
+  let said = '';
   let stop = () => {};
   const done = new Promise<string>((resolve) => {
     const id = setInterval(() => {
       const t = (performance.now() - t0) / 1000;
       const syllables = Math.max(0, Math.sin(t * 9)) * (0.55 + 0.45 * Math.sin(t * 1.3));
+      // talks for about 2 s, then goes quiet, so end-of-speech detection can be seen working
       const fixed = (window as unknown as { __readrxFakeLevel?: number }).__readrxFakeLevel;
-      onLevel(fixed ?? Math.max(0, Math.min(1, 0.15 + 0.8 * syllables)));
-      if (t > 0.8) onPartial('I have a headache');
+      onLevel(fixed ?? (t < 2 ? Math.max(0, Math.min(1, 0.15 + 0.8 * syllables)) : 0.03));
+      const words = t > 1.6 ? 'I have a headache' : t > 0.8 ? 'I have a' : '';
+      if (words && words !== said) onPartial((said = words));
     }, 40);
-    stop = () => (clearInterval(id), onLevel(0), resolve(''));
+    stop = () => (clearInterval(id), onLevel(0), resolve(said));
   });
   return { done, stop: () => stop() };
 }

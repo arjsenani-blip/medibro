@@ -23,6 +23,9 @@ public class ListenPlugin: CAPPlugin, CAPBridgedPlugin {
     private var finish: CAPPluginCall?
     private var latest = ""
     private var lastLevel = Date.distantPast
+    private var session = 0 // bumps on every start, so a late callback from an old task is ignored
+    /// True while the microphone is in use; SpeechPlugin leaves the audio session alone meanwhile.
+    static var active = false
 
     private func recognizer(_ lang: String) -> SFSpeechRecognizer? {
         SFSpeechRecognizer(locale: Locale(identifier: lang)) ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
@@ -51,6 +54,8 @@ public class ListenPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func begin(_ call: CAPPluginCall, lang: String) {
+        // a previous turn still open: hand back what it heard, then start clean
+        if let old = finish { finish = nil; old.resolve(["text": latest]) }
         stopAudio()
         guard let r = recognizer(lang), r.isAvailable, r.supportsOnDeviceRecognition else {
             return call.reject("Speech recognition on this phone isn’t available for this language. Type your question instead.", "unavailable")
@@ -61,10 +66,14 @@ public class ListenPlugin: CAPPlugin, CAPBridgedPlugin {
         request = req
         latest = ""
         finish = call
+        session += 1
+        let id = session
+        Self.active = true
 
         do {
             let s = AVAudioSession.sharedInstance()
-            try s.setCategory(.playAndRecord, mode: .measurement, options: [.duckOthers, .defaultToSpeaker])
+            // speaker, not the earpiece, and Bluetooth headsets; SpeechPlugin switches to playback to talk
+            try s.setCategory(.playAndRecord, mode: .measurement, options: [.duckOthers, .defaultToSpeaker, .allowBluetoothHFP])
             try s.setActive(true, options: .notifyOthersOnDeactivation)
             let input = engine.inputNode
             input.installTap(onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0)) { [weak self] buffer, _ in
@@ -80,12 +89,14 @@ public class ListenPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         task = r.recognitionTask(with: req) { [weak self] result, error in
-            guard let self else { return }
-            if let result {
-                self.latest = result.bestTranscription.formattedString
-                self.notifyListeners("partial", data: ["text": self.latest])
+            DispatchQueue.main.async {
+                guard let self, id == self.session else { return } // an old, cancelled task
+                if let result {
+                    self.latest = result.bestTranscription.formattedString
+                    self.notifyListeners("partial", data: ["text": self.latest])
+                }
+                if error != nil || (result?.isFinal ?? false) { self.end() }
             }
-            if error != nil || (result?.isFinal ?? false) { DispatchQueue.main.async { self.end() } }
         }
     }
 
@@ -104,10 +115,14 @@ public class ListenPlugin: CAPPlugin, CAPBridgedPlugin {
         notifyListeners("level", data: ["value": level])
     }
 
+    /// Ends the turn. start() resolves once the microphone, the audio engine and the
+    /// recognizer are fully stopped, so the app can speak right after without hearing itself.
     @objc func stop(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
+            let id = self.session
+            if self.engine.isRunning { self.engine.stop() }
             self.request?.endAudio() // lets the recognizer deliver its final result
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.end() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { if id == self.session { self.end() } }
             call.resolve()
         }
     }
@@ -126,6 +141,7 @@ public class ListenPlugin: CAPPlugin, CAPBridgedPlugin {
         task?.cancel()
         task = nil
         request = nil
+        Self.active = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }

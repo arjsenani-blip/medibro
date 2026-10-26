@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { smoothLevel } from '../lib/level';
 
-export type OrbState = 'idle' | 'listening' | 'thinking';
+export type OrbState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
 /**
  * The assistant's control: Cooky's glass orb, tinted by the theme. It is the
@@ -9,7 +9,9 @@ export type OrbState = 'idle' | 'listening' | 'thinking';
  * - idle: slow breathing (scale 1 → 1.03 over 4s), faint glow
  * - listening: scale (up to about 1.15), glow size and brightness follow the smoothed
  *   mic level; the inner color fields spin faster while it hears speech
- * - thinking / answering: a soft shimmer sweeps across
+ * - thinking: a soft shimmer sweeps across
+ * - speaking: it pulses gently, as if talking
+ * The tap area is 220px square around the 150px orb, so it's easy to hit.
  * Each frame writes only transform and opacity. With reduced motion nothing
  * scales or spins; only the glow's opacity follows the voice.
  */
@@ -32,9 +34,11 @@ export default function Orb({ state, level, label, onPress }: { state: OrbState;
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       const listening = stateRef.current === 'listening';
-      smooth = smoothLevel(smooth, listening ? level.current : 0, dt);
       const t = now / 1000;
-      if (glow.current) glow.current.style.opacity = String(Math.min(1, (listening ? 0.6 : 0.45) + 0.4 * smooth));
+      // while speaking there's no microphone level: a soft syllable-like pulse instead
+      const talk = stateRef.current === 'speaking' ? 0.25 + 0.2 * Math.max(0, Math.sin(t * 8)) * (0.6 + 0.4 * Math.sin(t * 1.7)) : 0;
+      smooth = smoothLevel(smooth, listening ? level.current : talk, dt);
+      if (glow.current) glow.current.style.opacity = String(Math.min(1, (listening || talk ? 0.6 : 0.45) + 0.4 * smooth));
       if (!reduce) {
         const breathe = 0.015 * (1 - Math.cos((2 * Math.PI * t) / 4)); // 0 → 0.03 → 0 every 4s
         a += dt * (10 + 160 * smooth);
@@ -51,13 +55,15 @@ export default function Orb({ state, level, label, onPress }: { state: OrbState;
   }, [level]);
 
   return (
-    <button type="button" onClick={onPress} aria-label={label} aria-pressed={state === 'listening'} className="orb-btn relative grid size-[150px] place-items-center rounded-full" data-state={state}>
-      <span ref={glow} className="orb-glow" aria-hidden />
-      <span ref={body} className="orb" aria-hidden>
-        <span ref={fieldA} className="orb-field orb-field-a" />
-        <span ref={fieldB} className="orb-field orb-field-b" />
-        <span className="orb-sheen" />
-        <span className="orb-shimmer" />
+    <button type="button" onClick={onPress} aria-label={label} aria-pressed={state === 'listening'} className="orb-btn relative grid size-[220px] touch-manipulation place-items-center rounded-full select-none" data-state={state}>
+      <span className="relative block size-[150px]">
+        <span ref={glow} className="orb-glow" aria-hidden />
+        <span ref={body} className="orb" aria-hidden>
+          <span ref={fieldA} className="orb-field orb-field-a" />
+          <span ref={fieldB} className="orb-field orb-field-b" />
+          <span className="orb-sheen" />
+          <span className="orb-shimmer" />
+        </span>
       </span>
     </button>
   );

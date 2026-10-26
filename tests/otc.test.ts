@@ -206,3 +206,32 @@ describe('consent gate', () => {
     expect(hasOtcConsent()).toBe(false);
   });
 });
+
+describe('short spoken answers', () => {
+  it('names at most two choices, one caution each, then the disclaimer', async () => {
+    const { shortSpoken } = await import('../src/lib/otc/assistant');
+    const lines = shortSpoken(answer('headache', none));
+    expect(lines[0]).toMatch(/^For headache, you could try acetaminophen, like Tylenol\.$/);
+    expect(lines[2]).toMatch(/^Or ibuprofen, like Advil\.$/);
+    expect(lines).toHaveLength(5);
+    expect(lines.at(-1)).toBe('Follow the package label. This isn’t medical advice.');
+  });
+  it('speaks the person’s own warning instead of the general caution', async () => {
+    const { shortSpoken } = await import('../src/lib/otc/assistant');
+    const lines = shortSpoken(answer('back pain', { ...none, medicines: ['WARFARIN 5MG'] }));
+    expect(lines.join(' ')).toMatch(/blood thinner/);
+  });
+  it('leads emergencies with the emergency line, and never suggests a medicine', async () => {
+    const { shortSpoken } = await import('../src/lib/otc/assistant');
+    const lines = shortSpoken(answer('chest pain', none));
+    expect(lines[0]).toMatch(/^Call 911/);
+    expect(lines.join(' ')).not.toMatch(/acetaminophen|ibuprofen/i);
+  });
+  it('never says a prescription name for any query', async () => {
+    const { shortSpoken } = await import('../src/lib/otc/assistant');
+    for (const q of ['oxycodone for pain', 'cure my diabetes', ...SYMPTOMS.flatMap((s) => s.words)]) {
+      const text = shortSpoken(answer(q, none)).join(' ').toLowerCase();
+      for (const rx of RX_NAMES) expect(text, `${q} → ${rx}`).not.toMatch(new RegExp(`\\b${rx}\\b`));
+    }
+  });
+});
