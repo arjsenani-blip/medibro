@@ -16,7 +16,7 @@ const MAX = 8;
 const GUIDE: Record<LabelKind, { title: string; intro: string; min: number; steps: string[]; more: string }> = {
   bottle: {
     title: 'Scan a bottle',
-    intro: 'The label wraps around the bottle, so take at least 3 photos as you turn it. ReadRx puts them together.',
+    intro: 'The label wraps around the bottle, so take at least 3 photos as you turn it. MediBro puts them together.',
     min: 3,
     steps: ['Medicine name facing you. Fill the photo with the label.', 'Turn the bottle a quarter turn. Keep a few words from the last photo in view.', 'Turn it a little more.'],
     more: 'Add more photos, or read it now.',

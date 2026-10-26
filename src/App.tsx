@@ -102,7 +102,7 @@ export default function App() {
         {brand ? (
           <span className="flex items-center gap-2.5">
             <Logo className="size-9 shrink-0" />
-            <span className="headline text-[1.25rem]">ReadRx</span>
+            <span className="headline text-[1.25rem]">MediBro</span>
           </span>
         ) : (
           <button type="button" onClick={back} className="btn btn-quiet btn-sm -ml-1 gap-1.5 pr-4 pl-3">

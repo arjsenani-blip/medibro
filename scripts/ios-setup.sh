@@ -69,11 +69,11 @@ set_key () {
   /usr/libexec/PlistBuddy -c "Set :$1 $2" "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :$1 string $2" "$PLIST"
 }
 echo "› Adding camera, photo, microphone and speech permission messages…"
-set_key NSCameraUsageDescription "ReadRx uses the camera to read prescription labels and check pills. Photos stay on this phone."
-set_key NSPhotoLibraryUsageDescription "ReadRx can read a label or pill from a photo you already took. Photos stay on this phone."
-set_key NSMicrophoneUsageDescription "ReadRx listens when you tap the microphone to ask about a symptom. What you say stays on this phone."
-set_key NSSpeechRecognitionUsageDescription "ReadRx turns your spoken question into text on this phone. It is never sent anywhere."
-set_key CFBundleDisplayName "ReadRx"
+set_key NSCameraUsageDescription "MediBro uses the camera to read prescription labels and check pills. Photos stay on this phone."
+set_key NSPhotoLibraryUsageDescription "MediBro can read a label or pill from a photo you already took. Photos stay on this phone."
+set_key NSMicrophoneUsageDescription "MediBro listens when you tap the microphone to ask about a symptom. What you say stays on this phone."
+set_key NSSpeechRecognitionUsageDescription "MediBro turns your spoken question into text on this phone. It is never sent anywhere."
+set_key CFBundleDisplayName "MediBro"
 
 # iOS 27 won't launch apps built with the current SDK unless they use the UIScene lifecycle,
 # which Capacitor 7's template doesn't. Add a scene manifest and a SceneDelegate.

@@ -1,6 +1,6 @@
 {
-  "name": "ReadRx — prescription label reader",
-  "short_name": "ReadRx",
+  "name": "MediBro — prescription label reader",
+  "short_name": "MediBro",
   "description": "Reads prescription labels out loud in your language and helps you check a pill before you take it.",
   "start_url": "/",
   "display": "standalone",

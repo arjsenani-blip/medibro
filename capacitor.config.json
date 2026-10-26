@@ -1,6 +1,6 @@
 {
   "appId": "com.arjunsenani.readrx",
-  "appName": "ReadRx",
+  "appName": "MediBro",
   "webDir": "dist",
   "ios": {
     "contentInset": "never",

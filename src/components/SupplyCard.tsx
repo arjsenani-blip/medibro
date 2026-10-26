@@ -81,7 +81,7 @@ export default function SupplyCard({ supply, fields, reminders, pharmacy, onChan
             <input type="checkbox" className="size-7 accent-[var(--accent-deep)]" checked={supply.reminders} onChange={(e) => onChange({ ...supply, reminders: e.target.checked })} />
           </label>
         )}
-        {supply.reminders && reminders === 'denied' && <p className="text-[1rem] text-stop">Notifications are off: Settings → Notifications → ReadRx.</p>}
+        {supply.reminders && reminders === 'denied' && <p className="text-[1rem] text-stop">Notifications are off: Settings → Notifications → MediBro.</p>}
 
         <button type="button" className="min-h-12 text-[1rem] font-bold text-ink-strong underline decoration-2 underline-offset-4" onClick={() => setEditing(true)}>
           Edit supply

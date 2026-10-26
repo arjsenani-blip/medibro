@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>ReadRx</string>
+	<string>MediBro</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -23,13 +23,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>ReadRx uses the camera to read prescription labels and check pills. Photos stay on this phone.</string>
+	<string>MediBro uses the camera to read prescription labels and check pills. Photos stay on this phone.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>ReadRx listens when you tap the microphone to ask about a symptom. What you say stays on this phone.</string>
+	<string>MediBro listens when you tap the microphone to ask about a symptom. What you say stays on this phone.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>ReadRx can read a label or pill from a photo you already took. Photos stay on this phone.</string>
+	<string>MediBro can read a label or pill from a photo you already took. Photos stay on this phone.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>ReadRx turns your spoken question into text on this phone. It is never sent anywhere.</string>
+	<string>MediBro turns your spoken question into text on this phone. It is never sent anywhere.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

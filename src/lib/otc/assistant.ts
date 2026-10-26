@@ -173,7 +173,7 @@ export function warningsFor(ing: Ingredient, ctx: Context, queryMentionsRx = fal
   const inMeds = (names: string[]) => meds.some((m) => names.some((n) => has(m, n)));
   // the same ingredient twice
   if (inMeds(ing.aliases.filter((a) => a.length > 3))) {
-    out.push({ level: 'stop', text: `One of the medicines you saved in ReadRx already contains ${ing.name.toLowerCase()}. Taking both could be too much. Ask your pharmacist before using this.` });
+    out.push({ level: 'stop', text: `One of the medicines you saved in MediBro already contains ${ing.name.toLowerCase()}. Taking both could be too much. Ask your pharmacist before using this.` });
   }
   const nsaid = ing.tags.includes('nsaid') || ing.tags.includes('salicylate');
   if (nsaid && inMeds(BLOOD_THINNERS)) {
@@ -236,7 +236,7 @@ export function answer(query: string, ctx: Context): Answer {
   const checkFirst = [...conditions.map((c) => CONDITION_TEXT[c]), 'You take other medicines, vitamins or supplements'];
 
   const notes: string[] = [];
-  if (rx) notes.push('You mentioned a prescription medicine. ReadRx only talks about over-the-counter medicines. Ask your pharmacist or doctor about prescriptions.');
+  if (rx) notes.push('You mentioned a prescription medicine. MediBro only talks about over-the-counter medicines. Ask your pharmacist or doctor about prescriptions.');
   if (disease) notes.push('These only ease symptoms for a short time. They don’t treat any disease. Ask your doctor about the condition itself.');
   return { kind: 'suggest', symptoms, suggestions: shown, leftOut, notes, checkFirst };
 }
@@ -266,9 +266,9 @@ export function answerText(a: Answer): string[] {
   }
 }
 
-export const RX_REPLY = 'ReadRx’s assistant only covers over-the-counter medicines for short-term symptom relief. It can’t advise about prescription medicines. Please ask your pharmacist or doctor.';
-export const DISEASE_REPLY = 'ReadRx’s assistant can’t help treat a disease or condition. It only suggests over-the-counter medicines to ease everyday symptoms for a short time. Please ask your doctor or pharmacist.';
-export const NONE_REPLY = 'ReadRx didn’t recognize a symptom it knows about. Try a few words, like “headache”, “runny nose”, “heartburn” or “can’t sleep”. Or ask your pharmacist.';
+export const RX_REPLY = 'MediBro’s assistant only covers over-the-counter medicines for short-term symptom relief. It can’t advise about prescription medicines. Please ask your pharmacist or doctor.';
+export const DISEASE_REPLY = 'MediBro’s assistant can’t help treat a disease or condition. It only suggests over-the-counter medicines to ease everyday symptoms for a short time. Please ask your doctor or pharmacist.';
+export const NONE_REPLY = 'MediBro didn’t recognize a symptom it knows about. Try a few words, like “headache”, “runny nose”, “heartburn” or “can’t sleep”. Or ask your pharmacist.';
 
 /** What gets read aloud: the short version of the answer, then the disclaimer. */
 export function spokenAnswer(a: Answer): string[] {

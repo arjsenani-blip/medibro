@@ -71,7 +71,7 @@ export default function Review({ fields, raw, lang, onSave, onAddPhoto, onCancel
           <div className={`rounded-[14px] p-3.5 ${preview.translated ? 'shadow-[inset_0_0_0_1.5px_var(--tint-ring)] [background:var(--tint),var(--color-card)]' : 'bg-stop-wash shadow-[inset_0_0_0_1px_rgba(152,32,26,.45)]'}`}>
             {preview.translated ? (
               <>
-                <p className="text-[0.95rem] font-bold text-accent-deep">ReadRx will say</p>
+                <p className="text-[0.95rem] font-bold text-accent-deep">MediBro will say</p>
                 <p className="mt-0.5 text-[1.2rem] font-bold text-ink-strong" lang={lang}>
                   {preview.directions}
                 </p>

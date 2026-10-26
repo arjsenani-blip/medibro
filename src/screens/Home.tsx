@@ -65,7 +65,7 @@ export default function Home({ meds, lang, profile, onScan, onSample, onOpen, on
         </Card>
       ) : (
         <div className="rise mt-3" style={{ '--i': 1 } as React.CSSProperties}>
-          <p className="max-w-[28ch] text-[1.2rem] leading-snug text-ink-strong">Scan a prescription label and ReadRx reads it to you.</p>
+          <p className="max-w-[28ch] text-[1.2rem] leading-snug text-ink-strong">Scan a prescription label and MediBro reads it to you.</p>
           <button type="button" onClick={onSample} className="mt-2 min-h-12 text-[1.05rem] font-bold text-accent-deep underline decoration-2 underline-offset-4">
             Try a sample label
           </button>

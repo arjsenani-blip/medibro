@@ -36,7 +36,7 @@ export default function Scan({ files, kind, prior, onDone, onBack, onCancel }: P
         setProgress((i + 1) / files.length);
       }
       if (!texts.length) {
-        setError(`ReadRx couldn’t find any writing in ${files.length > 1 ? 'these photos' : 'this photo'}. Hold the ${kind} closer, in good light, with the label facing the camera.`);
+        setError(`MediBro couldn’t find any writing in ${files.length > 1 ? 'these photos' : 'this photo'}. Hold the ${kind} closer, in good light, with the label facing the camera.`);
         return;
       }
       setFinding(true);
@@ -44,7 +44,7 @@ export default function Scan({ files, kind, prior, onDone, onBack, onCancel }: P
       const raw = stitchTexts(prior ? [prior, ...texts] : texts, kind === 'bottle');
       const fields = await readFields(raw, kind);
       if (alive) onDone(raw, fields);
-    })().catch(() => alive && setError('The text reader didn’t load. Check your internet connection the first time you use ReadRx, then try again.'));
+    })().catch(() => alive && setError('The text reader didn’t load. Check your internet connection the first time you use MediBro, then try again.'));
     return () => {
       alive = false;
     };

@@ -40,9 +40,9 @@ public class ListenPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func start(_ call: CAPPluginCall) {
         let lang = call.getString("lang") ?? "en-US"
         SFSpeechRecognizer.requestAuthorization { status in
-            guard status == .authorized else { return call.reject("Speech recognition isn’t allowed. Settings → ReadRx → Speech Recognition.", "denied") }
+            guard status == .authorized else { return call.reject("Speech recognition isn’t allowed. Settings → MediBro → Speech Recognition.", "denied") }
             let next: (Bool) -> Void = { granted in
-                guard granted else { return call.reject("The microphone isn’t allowed. Settings → ReadRx → Microphone.", "denied") }
+                guard granted else { return call.reject("The microphone isn’t allowed. Settings → MediBro → Microphone.", "denied") }
                 DispatchQueue.main.async { self.begin(call, lang: lang) }
             }
             if #available(iOS 17.0, *) { AVAudioApplication.requestRecordPermission(completionHandler: next) }

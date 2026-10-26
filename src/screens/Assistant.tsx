@@ -147,9 +147,9 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
         </span>
       </p>
 
-      <div className="rise mt-6 flex flex-col items-center" style={{ '--i': 1 } as React.CSSProperties}>
+      <div className="rise mt-8 flex flex-col items-center" style={{ '--i': 1 } as React.CSSProperties}>
         <Orb state={orbState} level={level} label={listening ? 'Stop listening' : 'Start listening'} onPress={toggleMic} />
-        <p className="mt-8 text-[1.2rem] font-bold text-ink-strong" aria-live="polite">
+        <p className="mt-6 text-[1.2rem] font-bold text-ink-strong" aria-live="polite">
           {status}
         </p>
         {heard && <p className="mt-1 max-w-[26ch] text-center text-[1.1rem] text-ink">“{heard}”</p>}
@@ -159,7 +159,7 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
           </p>
         )}
 
-        <div className="mt-3 flex items-center gap-1">
+        <div className="mt-1 flex items-center gap-1">
           {canListen && !typing && (
             <button type="button" onClick={() => setTyping(true)} className="flex min-h-12 items-center gap-2 px-3 text-[1.05rem] font-bold text-accent-deep">
               <Keyboard className="size-5" aria-hidden /> Type instead

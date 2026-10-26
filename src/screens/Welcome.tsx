@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 
-const WORD = 'ReadRx';
+const WORD = 'MediBro';
 
 /**
  * First launch. The capsule grows in on the spring, the name rises letter by
@@ -18,7 +18,7 @@ export default function Welcome({ onStart }: { onStart: () => void }) {
   return (
     <div className={`intro flex min-h-dvh flex-col items-center px-6 text-center ${done ? 'done' : ''}`} onPointerDown={() => setDone(true)}>
       <div className="safe-top flex flex-1 flex-col items-center justify-center pt-10">
-        <img src="/icon-512.png" alt="ReadRx logo: a glass capsule" className="intro-mark size-40 rounded-[26%]" />
+        <img src="/icon-512.png" alt="MediBro logo: a glass capsule" className="intro-mark size-40 rounded-[26%]" />
         <h1 className="headline mt-9 text-[3rem] tracking-[-0.035em]" aria-label={WORD}>
           {[...WORD].map((ch, i) => (
             <span key={i} className="intro-letter" style={{ '--i': i } as React.CSSProperties} aria-hidden>

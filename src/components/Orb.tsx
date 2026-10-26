@@ -7,7 +7,7 @@ export type OrbState = 'idle' | 'listening' | 'thinking';
  * The assistant's control: Cooky's glass orb, tinted by the theme. It is the
  * button (tap to start or stop listening).
  * - idle: slow breathing (scale 1 → 1.03 over 4s), faint glow
- * - listening: scale (up to 1.18), glow size and brightness follow the smoothed
+ * - listening: scale (up to about 1.15), glow size and brightness follow the smoothed
  *   mic level; the inner color fields spin faster while it hears speech
  * - thinking / answering: a soft shimmer sweeps across
  * Each frame writes only transform and opacity. With reduced motion nothing
@@ -39,8 +39,8 @@ export default function Orb({ state, level, label, onPress }: { state: OrbState;
         const breathe = 0.015 * (1 - Math.cos((2 * Math.PI * t) / 4)); // 0 → 0.03 → 0 every 4s
         a += dt * (10 + 160 * smooth);
         b -= dt * (7 + 110 * smooth);
-        if (body.current) body.current.style.transform = `scale(${1 + breathe + 0.18 * smooth})`;
-        if (glow.current) glow.current.style.transform = `scale(${1 + breathe * 2 + 0.55 * smooth})`;
+        if (body.current) body.current.style.transform = `scale(${1 + breathe + 0.12 * smooth})`; // at most ~1.15×
+        if (glow.current) glow.current.style.transform = `scale(${1 + breathe * 2 + 0.45 * smooth})`;
         if (fieldA.current) fieldA.current.style.transform = `rotate(${a}deg)`;
         if (fieldB.current) fieldB.current.style.transform = `rotate(${b}deg)`;
       }
@@ -51,7 +51,7 @@ export default function Orb({ state, level, label, onPress }: { state: OrbState;
   }, [level]);
 
   return (
-    <button type="button" onClick={onPress} aria-label={label} aria-pressed={state === 'listening'} className="orb-btn relative grid size-52 place-items-center rounded-full" data-state={state}>
+    <button type="button" onClick={onPress} aria-label={label} aria-pressed={state === 'listening'} className="orb-btn relative grid size-[150px] place-items-center rounded-full" data-state={state}>
       <span ref={glow} className="orb-glow" aria-hidden />
       <span ref={body} className="orb" aria-hidden>
         <span ref={fieldA} className="orb-field orb-field-a" />

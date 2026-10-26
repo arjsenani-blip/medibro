@@ -15,7 +15,7 @@ const SHAPE_WORD = { round: 'round', oval: 'oval', oblong: 'long and narrow', ca
 const shapeLine = (shape: keyof typeof SHAPE_WORD) => (shape === 'other' ? 'Has an unusual shape' : `Looks ${SHAPE_WORD[shape]}`);
 
 const READ_ERROR: Record<PillError, string> = {
-  'no-pill': 'ReadRx couldn’t find a pill in the photo. Put the pill in the middle and move the camera closer.',
+  'no-pill': 'MediBro couldn’t find a pill in the photo. Put the pill in the middle and move the camera closer.',
   'too-big': 'The pill fills the whole photo. Move the camera back a little so the background shows around it.',
   'busy-background': 'The background is too busy. Put the pill on a plain, dark surface like a dark towel or table.',
 };
@@ -158,7 +158,7 @@ export default function PillCheck({ med }: { med: Medicine }) {
         )}
         {(fda.status === 'error' || (fda.status === 'done' && !fda.result)) && !fromLabel && (
           <p className="mt-2 text-[1rem]">
-            {fda.message ?? `ReadRx couldn’t find what ${name} should look like.`} Ask your pharmacist to describe the pill, or add the description from your label on the review screen.
+            {fda.message ?? `MediBro couldn’t find what ${name} should look like.`} Ask your pharmacist to describe the pill, or add the description from your label on the review screen.
           </p>
         )}
       </Card>
@@ -259,14 +259,14 @@ export default function PillCheck({ med }: { med: Medicine }) {
       {verdict === 'partial' && (
         <section role="status" className="card sheet-in mt-4 p-4">
           <p className="headline text-[1.25rem]">Color and shape look right.</p>
-          <p className="mt-1 text-[1rem]">ReadRx doesn’t know what should be stamped on this pill, so it can’t fully confirm it. Ask your pharmacist if you’re not sure.</p>
+          <p className="mt-1 text-[1rem]">MediBro doesn’t know what should be stamped on this pill, so it can’t fully confirm it. Ask your pharmacist if you’re not sure.</p>
           {call}
         </section>
       )}
       {verdict === 'unsure' && (
         <section role="status" className="card sheet-in mt-4 p-4">
           <p className="headline flex items-center gap-2 text-[1.25rem]">
-            <CircleHelp className="size-6 shrink-0" aria-hidden /> ReadRx can’t confirm this pill.
+            <CircleHelp className="size-6 shrink-0" aria-hidden /> MediBro can’t confirm this pill.
           </p>
           <p className="mt-1 text-[1rem]">The stamp is how pharmacists tell look-alike pills apart. Try a magnifier or brighter light, or ask your pharmacist.</p>
           {call}
