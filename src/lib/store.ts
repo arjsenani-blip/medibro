@@ -74,10 +74,12 @@ export interface Profile {
   birthDate: string; // YYYY-MM-DD
   doctorName: string;
   doctorPhone: string;
+  policeName: string; // local police station, for medicine take-back (non-emergency)
+  policePhone: string;
   allergies: string[];
   setupDone: boolean; // finished (or skipped through) the first-launch setup
 }
-export const EMPTY_PROFILE: Profile = { name: '', pharmacyName: '', pharmacyPhone: '', birthDate: '', doctorName: '', doctorPhone: '', allergies: [], setupDone: false };
+export const EMPTY_PROFILE: Profile = { name: '', pharmacyName: '', pharmacyPhone: '', birthDate: '', doctorName: '', doctorPhone: '', policeName: '', policePhone: '', allergies: [], setupDone: false };
 
 export function loadProfile(): Profile {
   try {
@@ -90,6 +92,8 @@ export function loadProfile(): Profile {
       birthDate: /^\d{4}-\d{2}-\d{2}$/.test(str('birthDate')) ? str('birthDate') : '',
       doctorName: str('doctorName'),
       doctorPhone: str('doctorPhone'),
+      policeName: str('policeName'),
+      policePhone: str('policePhone'),
       allergies: Array.isArray(raw.allergies) ? addAllergies([], raw.allergies.filter((a): a is string => typeof a === 'string').join(',')) : [],
       setupDone: raw.setupDone === true,
     };

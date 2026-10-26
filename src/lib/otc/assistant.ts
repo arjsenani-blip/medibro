@@ -1,11 +1,13 @@
 import { CONDITION_TEXT, INGREDIENTS, LABEL_REMINDER, byId, type Condition, type Ingredient, type Tag } from './otc-data';
 import { SYMPTOMS, type Symptom } from './symptoms';
+import { DISPOSAL_NOTE, SPECIAL, STEPS, isDisposalQuestion, savedMentioned, spokenDisposal } from '../disposal';
 
 /* The symptom assistant. Runs entirely on the phone from the data in this
    folder: no model, no network. It answers in this order:
    1. Emergency warning signs → no suggestions, only "call 911" (or 988 / Poison Control).
-   2. A prescription medicine or a disease, with no symptom → "only OTC symptom relief; ask your pharmacist or doctor".
-   3. Known symptoms → OTC ingredients from otc-data.ts, checked against the person's
+   2. Getting rid of old medicines → disposal steps (src/lib/disposal.ts), not suggestions.
+   3. A prescription medicine or a disease, with no symptom → "only OTC symptom relief; ask your pharmacist or doctor".
+   4. Known symptoms → OTC ingredients from otc-data.ts, checked against the person's
       allergies and saved medicines.
    Answers never repeat the prescription name someone typed, and never print a dose. */
 
@@ -40,7 +42,7 @@ export const RED_FLAGS: RedFlag[] = [
   { id: 'meningitis', title: 'High fever with a stiff neck needs care now', message: ER, calls: [CALL_911], patterns: [/\bstiff neck\b/, /\bneck (is )?stiff\b/] },
   { id: 'bleeding', title: 'Blood in vomit or stool needs care now', message: ER, calls: [CALL_911], patterns: [/\b(vomit(ing)?|throwing up|threw up) blood\b/, /\bblood in (my )?(vomit|stool|stools|poop|throw up)\b/, /\b(bloody|black|tarry) (stool|stools|poop)\b/, /\bcoffee grounds?\b/, /\bcoughing (up )?blood\b/] },
   { id: 'suicide', title: 'You don’t have to go through this alone', message: 'Call or text 988, the Suicide & Crisis Lifeline, any time, day or night. If you might act on these thoughts now, call 911.', calls: [CALL_988, CALL_911], patterns: [/\bsuicid/, /\bkill (my ?self|me)\b/, /\bend (my|it all|my life)\b/, /\bwant to die\b/, /\b(hurt|harm)(ing)? my ?self\b/, /\bself harm/, /\bno reason to live\b/] },
-  { id: 'poisoning', title: 'For a possible overdose or poisoning', message: 'Call Poison Control at 1-800-222-1222, any time. If the person is hard to wake, has trouble breathing or is having a seizure, call 911.', calls: [CALL_POISON, CALL_911], patterns: [/\boverdos/, /\btook too (many|much)\b/, /\btaken too (many|much)\b/, /\bpoison(ed|ing)?\b(?! ivy| oak)/, /\bswallowed (a |some )?(battery|bleach|chemical|cleaner|pills)\b/, /\bdouble dose\b/] },
+  { id: 'poisoning', title: 'For a possible overdose or poisoning', message: 'Call Poison Control at 1-800-222-1222, any time. If the person is hard to wake, has trouble breathing or is having a seizure, call 911.', calls: [CALL_POISON, CALL_911], patterns: [/\boverdos/, /\btook too (many|much)\b/, /\btaken too (many|much)\b/, /\bpoison(ed|ing)?\b(?! ivy| oak)/, /\bswallowed\b.*\b(battery|batteries|bleach|chemicals?|cleaner|pills?|medicines?|medications?|tablets?|capsules?|meds)\b/, /\b(child|kid|baby|son|daughter|grandchild|grandson|granddaughter|toddler|dog|cat) (took|ate|swallowed|got into)\b/, /\bdouble dose\b/] },
   { id: 'severe-pain', title: 'Severe or sudden pain needs a doctor now', message: ER, calls: [CALL_911], patterns: [/\b(severe|unbearable|excruciating|extreme|worst) (pain|headache|stomach|belly)/, /\bworst headache\b/, /\bpain (is )?(severe|unbearable|excruciating)\b/, /\bthunderclap\b/] },
   { id: 'infant', title: 'Babies need their own doctor’s advice', message: 'Call your baby’s doctor or nurse line now. For a baby under 3 months with any fever, or any baby who is hard to wake or breathing oddly, call 911.', calls: [CALL_911], patterns: [/\b(baby|babies|infant|infants|newborn)\b(?! aspirin)/, /\b\d{1,2} (month|months|mo) old\b/, /\bweeks? old\b/] },
 ];
@@ -79,7 +81,7 @@ const DISEASES = ['diabetes', 'cancer', 'tumor', 'hypertension', 'high blood pre
 
 /** Lowercase, straight apostrophes, punctuation as spaces. */
 export function normalize(s: string): string {
-  return ` ${s.toLowerCase().replace(/[’‘`]/g, "'").replace(/[^a-z0-9'%.]+/g, ' ').replace(/\s+/g, ' ').trim()} `;
+  return ` ${s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[’‘`]/g, "'").replace(/[^a-z0-9'%.]+/g, ' ').replace(/\s+/g, ' ').trim()} `;
 }
 const has = (text: string, phrase: string) => text.includes(normalize(phrase));
 
@@ -110,6 +112,7 @@ export interface Suggestion {
 }
 export type Answer =
   | { kind: 'emergency'; flags: RedFlag[] }
+  | { kind: 'dispose'; saved: { name: string; flush: boolean }[] } // saved medicines the person named
   | { kind: 'rx' }
   | { kind: 'disease' }
   | { kind: 'none' }
@@ -125,6 +128,7 @@ export type Answer =
 export interface Context {
   allergies: string[];
   medicines: string[]; // text of saved medicines (drug name and label text)
+  names?: string[]; // display names of the same saved medicines, same order
   age?: number | null;
 }
 
@@ -199,6 +203,10 @@ export function answer(query: string, ctx: Context): Answer {
   if (!query.trim()) return { kind: 'none' };
   const flags = matchRedFlags(query);
   if (flags.length) return { kind: 'emergency', flags };
+  const saved = (ctx.names ?? []).map((name, i) => ({ name, text: ctx.medicines[i] ?? name }));
+  if (isDisposalQuestion(query, [...RX_NAMES, ...saved.flatMap((m) => m.name.split(/\s+/).filter((w) => w.length >= 4 && !/^\d/.test(w)))])) {
+    return { kind: 'dispose', saved: savedMentioned(query, saved) };
+  }
 
   const symptoms = matchSymptoms(query);
   const rx = mentionsRx(query);
@@ -238,6 +246,8 @@ export function answerText(a: Answer): string[] {
   switch (a.kind) {
     case 'emergency':
       return a.flags.flatMap((f) => [f.title, f.message, ...f.calls.map((c) => c.label)]);
+    case 'dispose':
+      return [...STEPS.flatMap((s) => [s.title, ...s.lines]), ...SPECIAL.flatMap((x) => [x.item, x.how]), DISPOSAL_NOTE];
     case 'rx':
       return [RX_REPLY];
     case 'disease':
@@ -263,6 +273,7 @@ export const NONE_REPLY = 'ReadRx didn’t recognize a symptom it knows about. T
 /** What gets read aloud: the short version of the answer, then the disclaimer. */
 export function spokenAnswer(a: Answer): string[] {
   const lines: string[] = [];
+  if (a.kind === 'dispose') return spokenDisposal(a.saved);
   if (a.kind === 'emergency') a.flags.forEach((f) => lines.push(f.title + '.', f.message));
   else if (a.kind === 'rx') lines.push(RX_REPLY);
   else if (a.kind === 'disease') lines.push(DISEASE_REPLY);

@@ -22,7 +22,7 @@ describe('profile', () => {
     expect(loadProfile()).toEqual(EMPTY_PROFILE);
   });
   it('saves and loads every field', () => {
-    const p = { name: 'Maria', pharmacyName: 'Main St Pharmacy', pharmacyPhone: '(555) 123-4567', birthDate: '1948-03-09', doctorName: 'Dr. Lee', doctorPhone: '555 987 6543', allergies: ['Penicillin', 'Sulfa'], setupDone: true };
+    const p = { name: 'Maria', pharmacyName: 'Main St Pharmacy', pharmacyPhone: '(555) 123-4567', birthDate: '1948-03-09', doctorName: 'Dr. Lee', doctorPhone: '555 987 6543', policeName: 'Acton Police', policePhone: '978-555-0100', allergies: ['Penicillin', 'Sulfa'], setupDone: true };
     saveProfile(p);
     expect(loadProfile()).toEqual(p);
   });

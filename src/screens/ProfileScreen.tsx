@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import type { Prefs, Profile } from '../lib/store';
 import ThemePicker from '../components/ThemePicker';
-import { AllergyField, BirthField, DoctorFields, LanguageField, NameField, PharmacyFields, SizeField } from '../components/ProfileFields';
+import { AllergyField, BirthField, DoctorFields, LanguageField, NameField, PharmacyFields, PoliceFields, SizeField } from '../components/ProfileFields';
 import { BottomBar, Button, Spacer } from '../components/ui';
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
   onPrefs: (patch: Partial<Prefs>) => void;
   onLanguage: () => void;
   onDone: () => void;
+  focus?: 'police'; // scroll to this field on open
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -23,7 +24,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /** Everything from setup, to change later. Saved as you type, on this phone only. */
-export default function ProfileScreen({ profile, prefs, onProfile, onPrefs, onLanguage, onDone }: Props) {
+export default function ProfileScreen({ profile, prefs, onProfile, onPrefs, onLanguage, onDone, focus }: Props) {
+  useEffect(() => {
+    if (focus) setTimeout(() => document.getElementById(focus)?.scrollIntoView({ block: 'center' }), 50);
+  }, [focus]);
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <h1 className="headline rise mt-4 text-[2rem]">Settings</h1>
@@ -48,6 +52,9 @@ export default function ProfileScreen({ profile, prefs, onProfile, onPrefs, onLa
         <div className="space-y-4">
           <PharmacyFields profile={profile} onChange={onProfile} />
           <DoctorFields profile={profile} onChange={onProfile} />
+          <div id="police" className="scroll-mt-20">
+            <PoliceFields profile={profile} onChange={onProfile} />
+          </div>
         </div>
       </Section>
 

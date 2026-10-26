@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { ChevronDown, CircleAlert, Info, Keyboard, OctagonX, Phone, Search, Square, Store, TriangleAlert, Volume2 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { ChevronDown, CircleAlert, Info, Keyboard, MapPin, OctagonX, Phone, Search, Shield, Square, Store, TriangleAlert, Volume2 } from 'lucide-react';
 import type { Medicine, Profile } from '../lib/store';
 import { acceptOtcConsent, hasOtcConsent, telHref } from '../lib/store';
 import { DISEASE_REPLY, NONE_REPLY, RX_REPLY, ageFrom, answer as answerFor, medicineText, spokenAnswer, type Answer, type Suggestion } from '../lib/otc/assistant';
 import { canListen, listen, listensOnDevice, type Session } from '../lib/listen';
 import { canSpeak, speakLines, stopSpeaking } from '../lib/speech';
+import { plainLabel } from '../lib/plain';
+import { DISPOSAL_NOTE, SPECIAL, STEPS, disposalActions, yesNo, type Action } from '../lib/disposal';
 import Orb, { type OrbState } from '../components/Orb';
 import { Button, CallButton, Card, buttonClass } from '../components/ui';
 
@@ -13,10 +16,16 @@ interface Props {
   meds: Medicine[];
   rate: number;
   onLeave: () => void; // declined the consent
-  onProfile: () => void;
+  onProfile: (focus?: 'police') => void;
 }
 
-const CHIPS = ['Headache', 'Runny nose', 'Heartburn', 'Can’t sleep'];
+const CHIPS: [string, string][] = [
+  ['Headache', 'Headache'],
+  ['Runny nose', 'Runny nose'],
+  ['Heartburn', 'Heartburn'],
+  ['Can’t sleep', 'Can’t sleep'],
+  ['Old medicines', 'How do I get rid of old medicines?'],
+];
 const CARD_NOTE = 'Not medical advice. Follow the package label.';
 
 /** Ask about a symptom: OTC suggestions from ReadRx's own offline list. */
@@ -35,8 +44,14 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
   const level = useRef(0); // raw mic level, 0–1, read by the orb each frame
   const answerRef = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const viaVoice = useRef(false); // the last question was spoken, so the answer is read aloud
+  const [followUp, setFollowUpState] = useState(false); // waiting for yes/no to “call your police station?”
+  const followUpRef = useRef(false); // the same, for callbacks started in an earlier render
+  const setFollowUp = (v: boolean) => ((followUpRef.current = v), setFollowUpState(v));
+  const [confirmMaps, setConfirmMaps] = useState(false);
+  const actions = useMemo(() => disposalActions(profile, Capacitor.isNativePlatform()), [profile]);
 
-  const ctx = useMemo(() => ({ allergies: profile.allergies, medicines: meds.map(medicineText), age: ageFrom(profile.birthDate) }), [profile, meds]);
+  const ctx = useMemo(() => ({ allergies: profile.allergies, medicines: meds.map(medicineText), names: meds.map((m) => plainLabel(m.fields, m.raw, 'en').name), age: ageFrom(profile.birthDate) }), [profile, meds]);
   const result: Answer | null = asked ? answerFor(asked, ctx) : null;
 
   useEffect(() => () => (session.current?.stop(), stopSpeaking(), clearTimeout(timer.current)), []);
@@ -44,8 +59,28 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
     if (asked) answerRef.current?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
   }, [asked]);
 
+  const say = (lines: string[], then?: () => void) => {
+    setSpeaking(true);
+    speakLines(lines.map((text) => ({ text, lang: 'en' as const })), rate, (i) => i === null && (setSpeaking(false), then?.()));
+  };
+
+  // the reply to "Do you want to call your police station?"
+  const answerFollowUp = (q: string): boolean => {
+    const yn = yesNo(q);
+    if (!yn) return false;
+    setFollowUp(false);
+    if (yn === 'no') return say(['Okay.']), true;
+    const police = actions.find((a) => a.id === 'police');
+    if (police) window.location.href = police.href; // iOS still asks before calling
+    else (setConfirmMaps(true), say(['I don’t have their number yet. Tap Find nearby police to search the map.']));
+    return true;
+  };
+
   const ask = (q: string) => {
     if (!q.trim()) return;
+    if (followUpRef.current && answerFollowUp(q)) return;
+    setFollowUp(false);
+    setConfirmMaps(false);
     stopSpeaking();
     setSpeaking(false);
     setQuery(q);
@@ -53,12 +88,22 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
     setThinking(true);
     clearTimeout(timer.current);
     // a short beat so the orb shows it's working; the answer itself is instant
-    timer.current = setTimeout(() => (setThinking(false), setAsked(q.trim())), 450);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setAsked(q.trim());
+      const a = answerFor(q.trim(), ctx);
+      // disposal answers are read aloud when asked by voice, then ask about calling
+      if (a.kind === 'dispose' && viaVoice.current && canSpeak) say(spokenAnswer(a), () => (setFollowUp(true), canListen && setTimeout(startListening, 300)));
+    }, 450);
   };
 
   const toggleMic = () => {
     if (!canListen) return setTyping(true);
     if (listening) return session.current?.stop();
+    startListening();
+  };
+
+  function startListening() {
     setMicError('');
     setHeard('');
     stopSpeaking();
@@ -67,25 +112,27 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
     session.current = s;
     setListening(true);
     s.done
-      .then((text) => text.trim() && ask(text))
+      .then((text) => {
+        viaVoice.current = true;
+        if (text.trim()) ask(text);
+      })
       .catch((e: Error) => (setMicError(e.message), setTyping(true)))
       .finally(() => {
         level.current = 0;
         setListening(false);
       });
-  };
+  }
 
   const readAloud = () => {
     if (!result) return;
     if (speaking) return (stopSpeaking(), setSpeaking(false));
-    setSpeaking(true);
-    speakLines(spokenAnswer(result).map((text) => ({ text, lang: 'en' as const })), rate, (i) => i === null && setSpeaking(false));
+    say(spokenAnswer(result), () => result.kind === 'dispose' && setFollowUp(true));
   };
 
   if (!consented) return <Consent onAccept={() => (acceptOtcConsent(), setConsented(true))} onDecline={onLeave} />;
 
   const orbState: OrbState = listening ? 'listening' : thinking || speaking ? 'thinking' : 'idle';
-  const status = listening ? 'Listening… tap to stop' : thinking ? 'Thinking…' : canListen ? 'Tap to talk' : 'Type your question';
+  const status = listening ? (followUp ? 'Say yes or no' : 'Listening… tap to stop') : thinking ? 'Thinking…' : followUp ? 'Call your police station? Tap and say yes or no' : canListen ? 'Tap to talk' : 'Type your question';
 
   return (
     <div className="flex min-h-full flex-1 flex-col pb-8">
@@ -132,6 +179,7 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
           <form
             onSubmit={(e: FormEvent) => {
               e.preventDefault();
+              viaVoice.current = false;
               ask(query);
             }}
             className="flex gap-2"
@@ -145,9 +193,9 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
             </button>
           </form>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
-            {CHIPS.map((c) => (
-              <button key={c} type="button" onClick={() => ask(c)} className="btn btn-quiet min-h-12 rounded-full px-4 text-[1rem] font-semibold">
-                {c}
+            {CHIPS.map(([label, q]) => (
+              <button key={label} type="button" onClick={() => ((viaVoice.current = false), ask(q))} className="btn btn-quiet min-h-12 rounded-full px-4 text-[1rem] font-semibold">
+                {label}
               </button>
             ))}
           </div>
@@ -155,13 +203,13 @@ export default function Assistant({ profile, meds, rate, onLeave, onProfile }: P
       )}
 
       <div ref={answerRef} className="scroll-mt-20" aria-live="polite">
-        {result && <AnswerView key={asked} result={result} profile={profile} speaking={speaking} onRead={canSpeak ? readAloud : undefined} onProfile={onProfile} />}
+        {result && <AnswerView key={asked} result={result} profile={profile} speaking={speaking} onRead={canSpeak ? readAloud : undefined} onProfile={onProfile} actions={actions} confirmMaps={confirmMaps} />}
       </div>
     </div>
   );
 }
 
-function AnswerView({ result, profile, speaking, onRead, onProfile }: { result: Answer; profile: Profile; speaking: boolean; onRead?: () => void; onProfile: () => void }) {
+function AnswerView({ result, profile, speaking, onRead, onProfile, actions: disposal, confirmMaps }: { result: Answer; profile: Profile; speaking: boolean; onRead?: () => void; onProfile: (focus?: 'police') => void; actions: Action[]; confirmMaps: boolean }) {
   const actions = (
     <div className="mt-5 grid grid-cols-2 gap-2.5">
       {onRead ? (
@@ -174,6 +222,8 @@ function AnswerView({ result, profile, speaking, onRead, onProfile }: { result: 
       <PharmacistButton profile={profile} onProfile={onProfile} />
     </div>
   );
+
+  if (result.kind === 'dispose') return <DisposalView saved={result.saved} actions={disposal} speaking={speaking} onRead={onRead} onSaveNumber={() => onProfile('police')} confirmMaps={confirmMaps} />;
 
   // emergencies stay big and loud
   if (result.kind === 'emergency') {
@@ -311,7 +361,7 @@ function SuggestionCard({ s, i }: { s: Suggestion; i: number }) {
   );
 }
 
-function PharmacistButton({ profile, onProfile }: { profile: Profile; onProfile: () => void }) {
+function PharmacistButton({ profile, onProfile }: { profile: Profile; onProfile: (focus?: 'police') => void }) {
   if (telHref(profile.pharmacyPhone)) {
     return (
       <CallButton phone={profile.pharmacyPhone} variant="glass">
@@ -320,9 +370,80 @@ function PharmacistButton({ profile, onProfile }: { profile: Profile; onProfile:
     );
   }
   return (
-    <Button variant="quiet" onClick={onProfile} icon={<Store className="size-5" aria-hidden />}>
+    <Button variant="quiet" onClick={() => onProfile()} icon={<Store className="size-5" aria-hidden />}>
       Pharmacy
     </Button>
+  );
+}
+
+/** Old medicines: the FDA steps, and who to call. Never 911. */
+function DisposalView({ saved, actions, speaking, onRead, onSaveNumber, confirmMaps }: { saved: { name: string; flush: boolean }[]; actions: Action[]; speaking: boolean; onRead?: () => void; onSaveNumber: () => void; confirmMaps: boolean }) {
+  const [first, ...rest] = actions;
+  const icon = (a: Action) => (a.id === 'find-police' ? <MapPin className="size-6" aria-hidden /> : a.id === 'takeback' ? <Search className="size-5" aria-hidden /> : a.id === 'police' ? <Shield className="size-6" aria-hidden /> : <Phone className="size-5" aria-hidden />);
+  const external = (a: Action) => (a.href.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {});
+  return (
+    <div className="mt-8">
+      <h2 className="headline text-[1.5rem]">Old medicines</h2>
+      {saved.map((m) => (
+        <p key={m.name} className={`mt-3 rounded-[14px] p-3.5 text-[1.05rem] font-bold ${m.flush ? 'bg-amber-wash text-amber' : 'bg-surface text-ink-strong'}`}>
+          {m.flush ? `${m.name} is on the FDA flush list. Take-back is best; if none is open soon, you may flush it.` : `${m.name} isn’t on the flush list. Don’t flush it.`}
+        </p>
+      ))}
+      <Card i={0} className="mt-4 p-5">
+        <ol className="space-y-5">
+          {STEPS.map((s, i) => (
+            <li key={s.title} className="flex gap-3">
+              <span className="glyph size-8 text-[0.95rem] font-extrabold">{i + 1}</span>
+              <div className="min-w-0">
+                <h3 className="text-[1.15rem] font-extrabold text-ink-strong">{s.title}</h3>
+                <ul className="mt-1 space-y-1 text-[1.02rem] text-ink-strong">
+                  {s.lines.map((l) => (
+                    <li key={l}>{l}</li>
+                  ))}
+                </ul>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <details className="group mt-4">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 text-[1rem] font-bold text-accent-deep">
+            Patches, inhalers, needles
+            <ChevronDown className="size-5 transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
+          <ul className="space-y-2 pb-1 text-[1rem]">
+            {SPECIAL.map((x) => (
+              <li key={x.item}>
+                <b>{x.item}:</b> {x.how}
+              </li>
+            ))}
+          </ul>
+        </details>
+        <p className="mt-2 text-[0.95rem] text-muted">{DISPOSAL_NOTE}</p>
+      </Card>
+
+      <div className="mt-5 space-y-2.5">
+        <a href={first.href} {...external(first)} className={buttonClass('primary', `min-h-16 text-[1.15rem] ${confirmMaps && first.id === 'find-police' ? 'is-on' : ''}`)}>
+          {icon(first)} {first.id === 'police' ? 'Call police station' : first.label}
+        </a>
+        {first.id === 'find-police' && (
+          <button type="button" onClick={onSaveNumber} className="min-h-12 w-full text-[1rem] font-bold text-ink-strong underline decoration-2 underline-offset-4">
+            Save their number
+          </button>
+        )}
+        <div className="grid grid-cols-2 gap-2.5">
+          {rest.map((a) => (
+            <a key={a.id} href={a.href} {...external(a)} aria-label={a.label} className={buttonClass(a.id === 'pharmacy' ? 'glass' : 'quiet', 'px-3 text-[1rem]')}>
+              {icon(a)} {a.id === 'pharmacy' ? 'Call pharmacy' : 'Take-back sites'}
+            </a>
+          ))}
+          {onRead && (
+            <Button variant="quiet" className={`${rest.length % 2 ? '' : 'col-span-2'} ${speaking ? 'is-on' : ''}`} onClick={onRead} icon={speaking ? <Square className="size-4 fill-current" aria-hidden /> : <Volume2 className="size-6" aria-hidden />}>
+              {speaking ? 'Stop' : 'Listen'}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

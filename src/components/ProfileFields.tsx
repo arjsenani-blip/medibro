@@ -46,6 +46,19 @@ export function DoctorFields({ profile, onChange }: { profile: Profile; onChange
   );
 }
 
+export function PoliceFields({ profile, onChange }: { profile: Profile; onChange: EditProfile }) {
+  return (
+    <div className="space-y-4">
+      <Field label="Local police (non-emergency)" hint="For dropping off old medicines. Never for emergencies.">
+        <input className={big} value={profile.policeName} placeholder="Station name" autoCapitalize="words" onChange={(e) => onChange({ policeName: e.target.value })} />
+      </Field>
+      <Field label="Police non-emergency phone">
+        <input className={big} type="tel" inputMode="tel" autoComplete="off" value={profile.policePhone} onChange={(e) => onChange({ policePhone: e.target.value })} />
+      </Field>
+    </div>
+  );
+}
+
 export function BirthField({ profile, onChange }: { profile: Profile; onChange: EditProfile }) {
   return (
     <Field label="Date of birth">

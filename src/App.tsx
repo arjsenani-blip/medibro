@@ -25,7 +25,7 @@ import PillCheck from './screens/PillCheck';
 type Screen =
   | { name: 'welcome' }
   | { name: 'setup' }
-  | { name: 'profile' }
+  | { name: 'profile'; focus?: 'police'; from?: 'assistant' }
   | { name: 'assistant' }
   | { name: 'home' }
   | { name: 'capture'; kind: LabelKind; files: File[] }
@@ -66,6 +66,7 @@ export default function App() {
   const go = (s: Screen) => setScreen(s);
   const back = () => {
     if (screen.name === 'pill') go({ name: 'med', id: screen.id });
+    else if (screen.name === 'profile' && screen.from) go({ name: screen.from });
     else go({ name: 'home' });
   };
 
@@ -126,8 +127,8 @@ export default function App() {
             }}
           />
         )}
-        {screen.name === 'assistant' && <Assistant profile={profile} meds={meds} rate={prefs.rate} onLeave={() => go({ name: 'home' })} onProfile={() => go({ name: 'profile' })} />}
-        {screen.name === 'profile' && <ProfileScreen profile={profile} prefs={prefs} onProfile={editProfile} onPrefs={editPrefs} onLanguage={() => setLangOpen(true)} onDone={() => go({ name: 'home' })} />}
+        {screen.name === 'assistant' && <Assistant profile={profile} meds={meds} rate={prefs.rate} onLeave={() => go({ name: 'home' })} onProfile={(focus) => go({ name: 'profile', focus, from: 'assistant' })} />}
+        {screen.name === 'profile' && <ProfileScreen profile={profile} prefs={prefs} focus={screen.focus} onProfile={editProfile} onPrefs={editPrefs} onLanguage={() => setLangOpen(true)} onDone={() => go({ name: screen.from ?? 'home' })} />}
         {screen.name === 'home' && (
           <Home
             meds={meds}
