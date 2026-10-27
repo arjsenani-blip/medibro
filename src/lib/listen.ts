@@ -110,10 +110,14 @@ function fakeSession(onPartial: (text: string) => void, onLevel: (level: number)
     const id = setInterval(() => {
       const t = (performance.now() - t0) / 1000;
       const syllables = Math.max(0, Math.sin(t * 9)) * (0.55 + 0.45 * Math.sin(t * 1.3));
-      // talks for about 2 s, then goes quiet, so end-of-speech detection can be seen working
+      // the sentence it "hears", word by word (set window.__readrxFakeWords to change it)
+      const all = ((window as unknown as { __readrxFakeWords?: string }).__readrxFakeWords ?? 'I have a headache').split(' ');
+      const n = Math.min(all.length, Math.max(0, Math.floor((t - 0.5) / 0.22)));
+      const words = all.slice(0, n).join(' ');
+      const talkFor = 0.5 + all.length * 0.22 + 0.3;
+      // talks for the sentence, then goes quiet, so end-of-speech detection can be seen working
       const fixed = (window as unknown as { __readrxFakeLevel?: number }).__readrxFakeLevel;
-      onLevel(fixed ?? (t < 2 ? Math.max(0, Math.min(1, 0.15 + 0.8 * syllables)) : 0.03));
-      const words = t > 1.6 ? 'I have a headache' : t > 0.8 ? 'I have a' : '';
+      onLevel(fixed ?? (t < talkFor ? Math.max(0, Math.min(1, 0.15 + 0.8 * syllables)) : 0.03));
       if (words && words !== said) onPartial((said = words));
     }, 40);
     stop = () => (clearInterval(id), onLevel(0), resolve(said));

@@ -81,7 +81,8 @@ const DISEASES = ['diabetes', 'cancer', 'tumor', 'hypertension', 'high blood pre
 
 /** Lowercase, straight apostrophes, punctuation as spaces. */
 export function normalize(s: string): string {
-  return ` ${s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[’‘`]/g, "'").replace(/[^a-z0-9'%.]+/g, ' ').replace(/\s+/g, ' ').trim()} `;
+  // a period is kept only inside a number ("2.5"); speech recognition ends sentences with one
+  return ` ${s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[’‘`]/g, "'").replace(/\.(?!\d)/g, ' ').replace(/[^a-z0-9'%.]+/g, ' ').replace(/\s+/g, ' ').trim()} `;
 }
 const has = (text: string, phrase: string) => text.includes(normalize(phrase));
 

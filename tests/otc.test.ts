@@ -51,6 +51,11 @@ describe('symptom matching', () => {
   ])('“%s” → %s', (q, id) => {
     expect(matchSymptoms(q).map((s) => s.id)).toContain(id);
   });
+  it('understands sentences with punctuation, as speech recognition writes them', () => {
+    expect(matchSymptoms('Hey MediBro, I heard that vitamin D is like good for constipation. What do you think of that?').map((s) => s.id)).toEqual(['constipation']);
+    expect(matchSymptoms('I have a headache.').map((s) => s.id)).toEqual(['headache']);
+    expect(matchSymptoms('My throat hurts!').map((s) => s.id)).toEqual(['sore-throat']);
+  });
   it('suggests matching OTC ingredients', () => {
     expect(ids(answer('headache', none))).toEqual(['acetaminophen', 'ibuprofen', 'naproxen', 'aspirin']);
     expect(ids(answer('heartburn', none))).toContain('famotidine');
